@@ -717,18 +717,141 @@
     }
 
     /* ═══════════════════════════════════════════
-       PILL AMÉLIORÉE
+       CARTE QUÊTE LIVE
     ═══════════════════════════════════════════ */
+    .quest-card {
+      position: absolute;
+      top: 157px;
+      left: 28px;
+      width: 420px;
+      background: linear-gradient(160deg, #0a1220f2, #0d1b2af5);
+      border: 2px solid rgba(212,175,55,0.7);
+      border-radius: 20px;
+      padding: 20px 24px;
+      box-shadow:
+        0 0 30px rgba(212,175,55,0.2),
+        0 0 60px rgba(212,175,55,0.08);
+      opacity: 0;
+      transform: translateX(-30px);
+      transition: opacity 0.4s cubic-bezier(0.34,1.56,0.64,1),
+                  transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+      pointer-events: none;
+      z-index: 7;
+    }
+
+    .quest-card.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .quest-card.exit {
+      opacity: 0;
+      transform: translateX(-20px);
+      transition: opacity 0.3s ease-in, transform 0.3s ease-in;
+    }
+
+    .quest-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .quest-card-badge {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #d4af37;
+      background: rgba(212,175,55,0.1);
+      border: 1px solid rgba(212,175,55,0.3);
+      border-radius: 4px;
+      padding: 2px 8px;
+      text-transform: uppercase;
+    }
+
+    .quest-card-dot {
+      width: 7px; height: 7px;
+      background: #4caf50;
+      border-radius: 50%;
+      box-shadow: 0 0 6px rgba(76,175,80,0.8);
+      animation: blink 1.2s ease-in-out infinite;
+    }
+
+    .quest-card-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: white;
+      margin-bottom: 3px;
+      line-height: 1.2;
+    }
+
+    .quest-card-desc {
+      font-size: 12px;
+      color: #777;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .quest-card-bar-wrap {
+      background: rgba(13,27,42,0.8);
+      border-radius: 8px;
+      overflow: hidden;
+      height: 10px;
+      margin-bottom: 6px;
+      border: 1px solid rgba(212,175,55,0.15);
+    }
+
+    .quest-card-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #b8960f, #d4af37, #e8c94a);
+      border-radius: 8px;
+      transition: width 0.8s ease;
+      box-shadow: 0 0 8px rgba(212,175,55,0.5);
+      width: 0%;
+    }
+
+    .quest-card-progress {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .quest-card-progress-label {
+      font-size: 13px;
+      color: #aaa;
+    }
+
+    .quest-card-progress-pct {
+      font-size: 14px;
+      font-weight: 900;
+      color: #d4af37;
+    }
+
+    .quest-card-reward {
+      font-size: 13px;
+      color: #d4af37;
+      padding: 8px 12px;
+      background: rgba(212,175,55,0.07);
+      border-radius: 8px;
+      border: 1px solid rgba(212,175,55,0.15);
+    }
+
+    /* Animation succès quête */
+    .quest-card.success {
+      border-color: #4caf50;
+      box-shadow: 0 0 40px rgba(76,175,80,0.3), 0 0 80px rgba(76,175,80,0.1);
+    }
     .pill-notif {
       position: absolute;
       left: 50%;
-      top: 50%;
-      transform: translateX(-50%) translateY(calc(-50% + 20px)) scale(0.97);
-      width: 900px;
+      top: 350px;
+      transform: translateX(-50%) translateY(20px) scale(0.97);
+      width: 760px;
       background: linear-gradient(135deg, #0a1628f0, #0d1b2af5);
       border: 2px solid #d4af37;
-      border-radius: 18px;
-      padding: 16px 22px;
+      border-radius: 14px;
+      padding: 12px 18px;
       display: flex;
       align-items: center;
       gap: 16px;
@@ -743,32 +866,32 @@
 
     .pill-notif.visible {
       opacity: 1;
-      transform: translateX(-50%) translateY(-50%) scale(1);
+      transform: translateX(-50%) translateY(0) scale(1);
     }
 
     .pill-notif.exit {
       opacity: 0;
-      transform: translateX(-50%) translateY(calc(-50% + 10px)) scale(0.98);
+      transform: translateX(-50%) translateY(-10px) scale(0.97);
       transition: opacity 0.25s ease-in, transform 0.25s ease-in;
     }
 
     .pill-icon {
-      font-size: 28px;
+      font-size: 22px;
       flex-shrink: 0;
-      width: 44px;
-      height: 44px;
+      width: 36px;
+      height: 36px;
       display: flex;
       align-items: center;
       justify-content: center;
       background: rgba(212,175,55,0.1);
-      border-radius: 12px;
+      border-radius: 10px;
       border: 1px solid rgba(212,175,55,0.2);
     }
 
     .pill-content { flex: 1; min-width: 0; }
 
     .pill-user {
-      font-size: 20px;
+      font-size: 17px;
       font-weight: 900;
       color: white;
       line-height: 1.1;
@@ -779,7 +902,7 @@
     }
 
     .pill-sub {
-      font-size: 13px;
+      font-size: 12px;
       color: #888;
       line-height: 1.3;
     }
@@ -787,7 +910,7 @@
     .pill-sub strong { color: #d4af37; font-weight: 700; }
 
     .pill-amount {
-      font-size: 26px;
+      font-size: 22px;
       font-weight: 900;
       color: #d4af37;
       flex-shrink: 0;
@@ -855,6 +978,24 @@
     <div class="pill-progress-wrap">
       <div class="pill-progress-bar" id="pill-progress-bar" style="width:0%"></div>
     </div>
+  </div>
+
+  <!-- Carte Quête Live -->
+  <div class="quest-card" id="quest-card">
+    <div class="quest-card-header">
+      <span class="quest-card-badge">⚔️ Quête Live</span>
+      <span class="quest-card-dot"></span>
+    </div>
+    <div class="quest-card-title"  id="qc-title">-</div>
+    <div class="quest-card-desc"   id="qc-desc">-</div>
+    <div class="quest-card-bar-wrap">
+      <div class="quest-card-bar-fill" id="qc-bar"></div>
+    </div>
+    <div class="quest-card-progress">
+      <span class="quest-card-progress-label" id="qc-label">0 / 0</span>
+      <span class="quest-card-progress-pct"   id="qc-pct">0%</span>
+    </div>
+    <div class="quest-card-reward" id="qc-reward"></div>
   </div>
 
   <!-- Zone animation -->
@@ -1017,6 +1158,16 @@ function showCard(html, duration, onDone) {
   const card = document.createElement("div");
   card.className = "event-card";
   card.innerHTML  = html;
+
+  // Positionne la carte sous la pill
+  const questVisible = document.getElementById("quest-card").classList.contains("visible");
+  const pillTop = questVisible ? 360 : 300;
+  const cardTop = pillTop + 80;
+  card.style.top  = cardTop + "px";
+  card.style.left = "50%";
+  card.style.marginLeft = "-390px"; // center (780/2)
+  card.style.position = "absolute";
+
   animZone.appendChild(card);
 
   requestAnimationFrame(() => {
@@ -1549,6 +1700,10 @@ function showPill(data) {
   const amount   = document.getElementById("pill-amount");
   const progress = document.getElementById("pill-progress-bar");
 
+  // Pill toujours au-dessus de la grande carte — position fixe haute
+  const questVisible = document.getElementById("quest-card").classList.contains("visible");
+  pill.style.top = questVisible ? "360px" : "300px";
+
   const rank = data.rank || { emoji: "🌱", name: "Explorateur" };
   const LANG_LABEL = { jp: "Japonais", cn: "Chinois", kr: "Coréen", id: "Indonésien" };
 
@@ -1590,6 +1745,70 @@ function showPill(data) {
     pill.classList.add("exit");
   }, 4000);
 }
+
+// ════════════════════════════════════════════
+//  QUÊTES LIVE
+// ════════════════════════════════════════════
+
+const QUEST_LABELS_OBS = {
+  achats:  "achats",
+  euros:   "€ dépensés",
+  jp:      "€ en JP",
+  cn:      "€ en CN",
+  kr:      "€ en KR",
+  id:      "€ en ID",
+  joueurs: "joueurs",
+  social:  "actions",
+};
+
+function showQuestCard(data) {
+  const card = document.getElementById("quest-card");
+  document.getElementById("qc-title").textContent  = data.title;
+  document.getElementById("qc-desc").textContent   = data.desc || "";
+  document.getElementById("qc-reward").textContent = data.reward ? "🎁 " + data.reward : "";
+
+  updateQuestBar(data);
+
+  card.classList.remove("exit", "success");
+  card.classList.add("visible");
+}
+
+function updateQuestBar(data) {
+  const pct     = Math.min(Math.round(data.pct || 0), 100);
+  const label   = QUEST_LABELS_OBS[data.type] || "";
+  document.getElementById("qc-bar").style.width    = pct + "%";
+  document.getElementById("qc-label").textContent  = `${data.current} / ${data.target} ${label}`;
+  document.getElementById("qc-pct").textContent    = pct + "%";
+}
+
+function hideQuestCard(success) {
+  const card = document.getElementById("quest-card");
+  if (success) {
+    card.classList.add("success");
+    spawnParticles("passport");
+    playSound("passport");
+    setTimeout(() => {
+      card.classList.remove("visible");
+      card.classList.add("exit");
+    }, 4000);
+  } else {
+    card.classList.remove("visible");
+    card.classList.add("exit");
+  }
+}
+
+socket.on("questLaunch", (data) => {
+  playSound("rankup");
+  showQuestCard(data);
+});
+
+socket.on("questUpdate", (data) => {
+  updateQuestBar(data);
+});
+
+socket.on("questEnd", (data) => {
+  hideQuestCard(data.success);
+});
 
 socket.on("sidebarConfig", (data) => {
   if (typeof data.visible !== "undefined")     sidebarVisible     = data.visible;

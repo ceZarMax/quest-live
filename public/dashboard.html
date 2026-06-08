@@ -15,6 +15,7 @@
   <div class="tabs">
     <button class="tab active" onclick="switchTab('live')">🎮 Live</button>
     <button class="tab" onclick="switchTab('wheel')">🎰 Roue</button>
+    <button class="tab" onclick="switchTab('quests')">📜 Quêtes</button>
   </div>
 </div>
 
@@ -244,6 +245,122 @@
 
 </div>
 
+<!-- ═══════════════════════════════════════ TAB QUÊTES ═══ -->
+<div id="tab-quests" class="tab-content" style="display:none">
+  <div class="dashboard">
+    <div class="sidebar">
+
+      <!-- Créer une quête -->
+      <div class="card">
+        <h2>📜 Nouvelle Quête</h2>
+
+        <div style="margin-bottom:8px">
+          <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Titre</label>
+          <input id="quest-title" placeholder="Ex : 10 achats en Japonais !" style="width:100%">
+        </div>
+
+        <div style="margin-bottom:8px">
+          <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Description courte</label>
+          <input id="quest-desc" placeholder="Ex : Achetez ensemble pour débloquer un give" style="width:100%">
+        </div>
+
+        <div style="margin-bottom:8px">
+          <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Récompense</label>
+          <input id="quest-reward" placeholder="Ex : Display JP offert !" style="width:100%">
+        </div>
+
+        <!-- Mode de quête -->
+        <div style="margin-bottom:10px">
+          <label style="font-size:12px;color:#888;display:block;margin-bottom:6px">Mode</label>
+          <div style="display:flex;gap:6px">
+            <button class="quest-mode-btn active" id="qmode-auto" onclick="setQuestMode('auto', this)">
+              ⚔️ Achat auto
+            </button>
+            <button class="quest-mode-btn" id="qmode-social" onclick="setQuestMode('social', this)">
+              🎲 Sociale
+            </button>
+          </div>
+        </div>
+
+        <!-- Objectif achat (mode auto) -->
+        <div id="quest-auto-section">
+          <div class="timer-duration-row" style="margin-bottom:8px">
+            <label style="font-size:12px;color:#888">Objectif</label>
+            <input id="quest-target" type="number" min="1" value="10" style="width:70px;margin:0">
+            <select id="quest-type" style="flex:1;margin:0;padding:6px 8px;background:#0d1b2a;border:1px solid #2b3a55;color:white;border-radius:6px;font-size:13px">
+              <option value="achats">achats</option>
+              <option value="euros">€ dépensés</option>
+              <option value="jp">€ en JP</option>
+              <option value="cn">€ en CN</option>
+              <option value="kr">€ en KR</option>
+              <option value="id">€ en ID</option>
+              <option value="joueurs">joueurs uniques</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Quête sociale (mode social) -->
+        <div id="quest-social-section" style="display:none">
+          <div style="margin-bottom:8px">
+            <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Action à réaliser</label>
+            <input id="quest-action" placeholder="Ex : Dites JAPONAIS dans le chat !" style="width:100%">
+          </div>
+          <div style="font-size:11px;color:#444;margin-bottom:8px;line-height:1.5">
+            Progression manuelle — tu fais avancer la barre toi-même.<br>
+            Utile pour : chat, devinettes, votes, cris dans le live…
+          </div>
+          <div class="timer-duration-row" style="margin-bottom:4px">
+            <label style="font-size:12px;color:#888">Étapes</label>
+            <input id="quest-social-target" type="number" min="1" value="5" style="width:70px;margin:0">
+            <span style="font-size:12px;color:#555">actions</span>
+          </div>
+        </div>
+
+        <button id="btn-quest-launch" class="btn-timer-start" style="width:100%;margin-top:4px">🚀 Lancer la quête</button>
+      </div>
+
+      <!-- Quête active -->
+      <div class="card" id="quest-active-card" style="display:none">
+        <h2>⚡ Quête en cours</h2>
+        <div id="quest-active-title"   style="font-size:16px;font-weight:bold;color:white;margin-bottom:4px"></div>
+        <div id="quest-active-desc"    style="font-size:12px;color:#888;margin-bottom:8px"></div>
+        <div id="quest-active-reward"  style="font-size:13px;color:#d4af37;margin-bottom:12px">🎁 <span></span></div>
+
+        <!-- Barre de progression -->
+        <div style="background:#0d1b2a;border-radius:6px;overflow:hidden;height:14px;margin-bottom:6px;border:1px solid #2b3a55">
+          <div id="quest-progress-bar" style="height:100%;background:linear-gradient(90deg,#b8960f,#d4af37,#e8c94a);border-radius:6px;transition:width 0.6s ease;width:0%"></div>
+        </div>
+        <div id="quest-progress-label" style="font-size:13px;color:#aaa;text-align:center;margin-bottom:12px">0 / 0</div>
+
+        <!-- Contrôles manuels (quête sociale) -->
+        <div id="quest-social-controls" style="display:none;margin-bottom:10px">
+          <div style="font-size:11px;color:#555;margin-bottom:6px;text-align:center">Progression manuelle</div>
+          <div style="display:flex;gap:8px;justify-content:center">
+            <button id="btn-quest-minus" class="btn-small" style="font-size:18px;padding:6px 16px;background:#1a2a40">−</button>
+            <span id="quest-social-current" style="font-size:22px;font-weight:bold;color:white;align-self:center;min-width:40px;text-align:center">0</span>
+            <button id="btn-quest-plus"  class="btn-small" style="font-size:18px;padding:6px 16px;background:#1e7d32;border-color:#2e9e42">＋</button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px">
+          <button id="btn-quest-complete" class="btn-timer-start" style="flex:1;font-size:12px;padding:8px">✅ Terminer</button>
+          <button id="btn-quest-cancel"   class="btn-timer-stop"  style="flex:1;font-size:12px;padding:8px">✕ Annuler</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Historique des quêtes du live -->
+    <div class="content">
+      <div style="font-size:13px;color:#555;margin-bottom:12px;letter-spacing:1px;text-transform:uppercase">Quêtes de la session</div>
+      <div id="quest-history"></div>
+      <div id="quest-history-empty" style="color:#333;font-size:14px;padding:40px 0;text-align:center">
+        Aucune quête lancée pour l'instant.
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════════════════════════════ MODAL ROUE PASSEPORT ═══ -->
 <div id="wheel-modal" class="modal-overlay" style="display:none">
   <div class="modal-box">
@@ -434,6 +551,7 @@ function switchTab(tab) {
       drawWheel("wheel-preview-topbuyers", getNormalizedRewards(topBuyersRewards), 0);
     }
   }
+  if (tab === "quests") renderQuestHistory();
 }
 
 function switchWheelTab(tab, btn) {
@@ -484,6 +602,7 @@ socket.on("purchase", (data) => {
   renderPlayers();
   updateDatalist();
   if (currentWheelTab === "topbuyers") renderTopBuyersLive();
+  updateQuestOnPurchase(data);
   showToast(data);
   if (data.passportCompleted) {
     playSound("passport");
@@ -1383,6 +1502,253 @@ document.getElementById("btn-spin-give").onclick = () => {
     document.getElementById("btn-spin-give").style.opacity = "1";
   }, (v) => { isSpinningGive = v; }, topBuyersRewards);
 };
+
+let questMode = "auto"; // "auto" | "social"
+let socialCurrent = 0;
+
+function setQuestMode(mode, btn) {
+  questMode = mode;
+  document.querySelectorAll(".quest-mode-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("quest-auto-section").style.display   = mode === "auto"   ? "" : "none";
+  document.getElementById("quest-social-section").style.display = mode === "social" ? "" : "none";
+}
+
+// ════════════════════════════════════════════
+//  SYSTÈME DE QUÊTES LIVE
+// ════════════════════════════════════════════
+
+let activeQuest   = null;  // quête en cours
+let questHistory  = [];    // quêtes terminées/annulées
+
+const QUEST_TYPE_LABELS = {
+  achats:   "achats",
+  euros:    "€ dépensés",
+  jp:       "€ en Japonais",
+  cn:       "€ en Chinois",
+  kr:       "€ en Coréen",
+  id:       "€ en Indonésien",
+  joueurs:  "joueurs uniques",
+  social:   "actions",
+};
+
+function getQuestProgress(quest) {
+  // Calcule la progression selon le type
+  const allPlayers = Object.values(players);
+  switch (quest.type) {
+    case "social":
+      return socialCurrent;
+    case "achats":
+      return quest.purchaseCount || 0;
+    case "euros":
+      return allPlayers.reduce((s, p) => s + (p.total || 0), 0) - (quest.startTotal || 0);
+    case "jp":
+      return allPlayers.reduce((s, p) => s + ((p.langSpent && p.langSpent.jp) || 0), 0) - (quest.startLang?.jp || 0);
+    case "cn":
+      return allPlayers.reduce((s, p) => s + ((p.langSpent && p.langSpent.cn) || 0), 0) - (quest.startLang?.cn || 0);
+    case "kr":
+      return allPlayers.reduce((s, p) => s + ((p.langSpent && p.langSpent.kr) || 0), 0) - (quest.startLang?.kr || 0);
+    case "id":
+      return allPlayers.reduce((s, p) => s + ((p.langSpent && p.langSpent.id) || 0), 0) - (quest.startLang?.id || 0);
+    case "joueurs":
+      return quest.uniquePlayers ? quest.uniquePlayers.size : 0;
+    default:
+      return 0;
+  }
+}
+
+function computeQuestSnapshot() {
+  const allPlayers = Object.values(players);
+  return {
+    startTotal: allPlayers.reduce((s, p) => s + (p.total || 0), 0),
+    startLang: {
+      jp: allPlayers.reduce((s, p) => s + ((p.langSpent && p.langSpent.jp) || 0), 0),
+      cn: allPlayers.reduce((s, p) => s + ((p.langSpent && p.langSpent.cn) || 0), 0),
+      kr: allPlayers.reduce((s, p) => s + ((p.langSpent && p.langSpent.kr) || 0), 0),
+      id: allPlayers.reduce((s, p) => s + ((p.langSpent && p.langSpent.id) || 0), 0),
+    },
+    purchaseCount:  0,
+    uniquePlayers:  new Set(),
+  };
+}
+
+function updateQuestOnPurchase(data) {
+  if (!activeQuest) return;
+  if (activeQuest.type === "achats") activeQuest.purchaseCount++;
+  if (activeQuest.type === "joueurs") activeQuest.uniquePlayers.add(data.user);
+
+  const current = getQuestProgress(activeQuest);
+  const pct     = Math.min(current / activeQuest.target * 100, 100);
+
+  // Mise à jour dashboard
+  document.getElementById("quest-progress-bar").style.width = pct + "%";
+  document.getElementById("quest-progress-label").textContent =
+    `${current} / ${activeQuest.target} ${QUEST_TYPE_LABELS[activeQuest.type]}`;
+
+  // Envoie update overlay
+  socket.emit("questUpdate", {
+    ...activeQuest,
+    current,
+    pct,
+    uniquePlayers: undefined,
+  });
+
+  // Auto-complétion si objectif atteint
+  if (current >= activeQuest.target) {
+    setTimeout(() => completeQuest(true), 500);
+  }
+}
+
+function launchQuest() {
+  const title  = document.getElementById("quest-title").value.trim();
+  const desc   = document.getElementById("quest-desc").value.trim();
+  const reward = document.getElementById("quest-reward").value.trim();
+
+  if (!title) { alert("Donne un titre à la quête."); return; }
+
+  let target, type, action;
+
+  if (questMode === "social") {
+    target = parseInt(document.getElementById("quest-social-target").value) || 5;
+    type   = "social";
+    action = document.getElementById("quest-action").value.trim();
+    socialCurrent = 0;
+  } else {
+    target = parseInt(document.getElementById("quest-target").value) || 10;
+    type   = document.getElementById("quest-type").value;
+    action = "";
+  }
+
+  const snap  = computeQuestSnapshot();
+  activeQuest = { title, desc, reward, target, type, action, ...snap, startedAt: Date.now() };
+
+  // UI dashboard
+  document.getElementById("quest-active-card").style.display = "";
+  document.getElementById("quest-active-title").textContent  = title;
+  document.getElementById("quest-active-desc").textContent   = desc || (action ? `Action : ${action}` : "");
+  document.getElementById("quest-active-reward").querySelector("span").textContent = reward;
+  document.getElementById("quest-progress-bar").style.width  = "0%";
+  document.getElementById("quest-progress-label").textContent =
+    `0 / ${target} ${type === "social" ? "actions" : QUEST_TYPE_LABELS[type]}`;
+
+  // Affiche/masque contrôles sociaux
+  document.getElementById("quest-social-controls").style.display = type === "social" ? "" : "none";
+  document.getElementById("quest-social-current").textContent = "0";
+
+  // Envoie à l'overlay
+  socket.emit("questLaunch", {
+    title, desc: desc || (action ? action : ""), reward, target, type, action,
+    current: 0, pct: 0,
+  });
+
+  playSound("rankup");
+  showDashToast(`🚀 Quête lancée : ${title}`);
+}
+
+function completeQuest(success) {
+  if (!activeQuest) return;
+
+  const current = getQuestProgress(activeQuest);
+  questHistory.unshift({
+    ...activeQuest,
+    current,
+    success,
+    endedAt: Date.now(),
+    uniquePlayers: undefined,
+  });
+
+  socket.emit("questEnd", { success, title: activeQuest.title, reward: activeQuest.reward });
+
+  if (success) playSound("passport");
+  activeQuest = null;
+
+  document.getElementById("quest-active-card").style.display = "none";
+  renderQuestHistory();
+
+  showDashToast(success ? `✅ Quête accomplie !` : `✕ Quête annulée`);
+}
+
+function renderQuestHistory() {
+  const container = document.getElementById("quest-history");
+  const empty     = document.getElementById("quest-history-empty");
+
+  if (questHistory.length === 0) {
+    container.innerHTML = "";
+    empty.style.display = "";
+    return;
+  }
+  empty.style.display = "none";
+
+  container.innerHTML = questHistory.map(q => {
+    const icon   = q.success ? "✅" : "✕";
+    const cls    = q.success ? "completed" : "cancelled";
+    const result = q.success ? "Accomplie" : "Annulée";
+    const resCls = q.success ? "win" : "fail";
+    const elapsed = Math.round((q.endedAt - q.startedAt) / 60000);
+
+    return `
+      <div class="quest-history-item ${cls}">
+        <div class="quest-history-icon">${icon}</div>
+        <div class="quest-history-info">
+          <div class="quest-history-title">${q.title}</div>
+          <div class="quest-history-meta">
+            ${q.current} / ${q.target} ${QUEST_TYPE_LABELS[q.type]}
+            · ${elapsed} min
+            ${q.reward ? `· 🎁 ${q.reward}` : ""}
+          </div>
+        </div>
+        <div class="quest-history-result ${resCls}">${result}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function showDashToast(msg) {
+  const t = document.getElementById("toast");
+  t.innerHTML = `<div class="toast-title">${msg}</div>`;
+  t.style.opacity = "1";
+  t.style.transform = "translate(-50%, -50%) scale(1)";
+  setTimeout(() => {
+    t.style.opacity = "0";
+    t.style.transform = "translate(-50%, -50%) scale(0.95)";
+  }, 2500);
+}
+
+// Boutons
+document.getElementById("btn-quest-launch").onclick   = launchQuest;
+document.getElementById("btn-quest-complete").onclick = () => completeQuest(true);
+document.getElementById("btn-quest-cancel").onclick   = () => completeQuest(false);
+
+document.getElementById("btn-quest-plus").onclick = () => {
+  if (!activeQuest || activeQuest.type !== "social") return;
+  socialCurrent = Math.min(socialCurrent + 1, activeQuest.target);
+  updateSocialProgress();
+};
+
+document.getElementById("btn-quest-minus").onclick = () => {
+  if (!activeQuest || activeQuest.type !== "social") return;
+  socialCurrent = Math.max(socialCurrent - 1, 0);
+  updateSocialProgress();
+};
+
+function updateSocialProgress() {
+  const pct = Math.min(socialCurrent / activeQuest.target * 100, 100);
+  document.getElementById("quest-progress-bar").style.width = pct + "%";
+  document.getElementById("quest-progress-label").textContent =
+    `${socialCurrent} / ${activeQuest.target} actions`;
+  document.getElementById("quest-social-current").textContent = socialCurrent;
+
+  socket.emit("questUpdate", {
+    ...activeQuest,
+    current: socialCurrent,
+    pct,
+    uniquePlayers: undefined,
+  });
+
+  if (socialCurrent >= activeQuest.target) {
+    setTimeout(() => completeQuest(true), 500);
+  }
+}
 
 // ════════════════════════════════════════════
 //  INIT

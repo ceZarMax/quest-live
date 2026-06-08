@@ -854,3 +854,54 @@ button:hover {
   transform: translateX(16px);
   background: white;
 }
+
+/* ═══════════════════════════════ QUÊTES ══ */
+
+.quest-history-item {
+  background: #0d1b2a;
+  border: 1px solid #1e2e42;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.quest-history-item.completed { border-left: 3px solid #4caf50; }
+.quest-history-item.cancelled { border-left: 3px solid #555; opacity: 0.55; }
+
+.quest-history-icon { font-size: 22px; flex-shrink: 0; }
+
+.quest-history-info { flex: 1; }
+.quest-history-title { font-size: 14px; font-weight: bold; color: white; margin-bottom: 2px; }
+.quest-history-meta  { font-size: 12px; color: #555; }
+
+.quest-history-result {
+  font-size: 12px;
+  font-weight: bold;
+  padding: 4px 10px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+.quest-history-result.win  { background: rgba(76,175,80,0.15); color: #4caf50; }
+.quest-history-result.fail { background: rgba(85,85,85,0.15);  color: #555; }
+
+/* ═══════════════════════════════ QUEST MODE BUTTONS ══ */
+.quest-mode-btn {
+  flex: 1;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: bold;
+  background: #0d1b2a;
+  border: 1px solid #2b3a55;
+  color: #555;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.quest-mode-btn.active {
+  background: rgba(212,175,55,0.1);
+  border-color: #d4af37;
+  color: #d4af37;
+}

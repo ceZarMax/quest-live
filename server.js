@@ -104,6 +104,11 @@ io.on("connection", (socket) => {
   socket.on("showLeaderboard",    (data) => io.emit("showLeaderboard", data));
   socket.on("sidebarConfig",      (data) => socket.broadcast.emit("sidebarConfig", data));
 
+  // ── Quêtes live
+  socket.on("questLaunch",  (data) => socket.broadcast.emit("questLaunch",  data));
+  socket.on("questUpdate",  (data) => socket.broadcast.emit("questUpdate",  data));
+  socket.on("questEnd",     (data) => socket.broadcast.emit("questEnd",     data));
+
   // ── Volume : relay dashboard → overlay
   socket.on("setVolume", (data) => {
     socket.broadcast.emit("setVolume", data);
