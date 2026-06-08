@@ -402,6 +402,24 @@ const LANG_NAMES = {
 };
 
 // ════════════════════════════════════════════
+//  SONS
+// ════════════════════════════════════════════
+
+const SOUNDS = {
+  coin:   new Audio("/sounds/coin.mp3"),
+  rankup: new Audio("/sounds/rankup.mp3"),
+};
+
+Object.values(SOUNDS).forEach(s => { s.preload = "auto"; });
+
+function playSound(name) {
+  const s = SOUNDS[name];
+  if (!s) return;
+  s.currentTime = 0;
+  s.play().catch(() => {});
+}
+
+// ════════════════════════════════════════════
 //  PARTICULES
 // ════════════════════════════════════════════
 
@@ -758,6 +776,13 @@ const socket = io();
 
 socket.on("purchase", (data) => {
 
+  // Son immédiat (pas en queue, doit partir dès réception)
+  if (data.passportCompleted || data.rankUp) {
+    playSound("rankup");
+  } else {
+    playSound("coin");
+  }
+
   // Rang avant passeport pour ne pas les empiler dans le mauvais ordre
   if (data.rankUp && !data.passportCompleted) {
     queueAnim((done) => animRankUp(data, done));
@@ -768,14 +793,10 @@ socket.on("purchase", (data) => {
   } else {
     queueAnim((done) => animPurchase(data, done));
   }
-
-  // Si rank up ET achat normal (pas passeport), on a déjà mis rankUp d'abord
-  if (data.rankUp && !data.passportCompleted) {
-    // rankUp déjà en queue, purchase normal suit
-  }
 });
 
 socket.on("spinWheel", (data) => {
+  playSound("rankup");
   queueAnim((done) => animWheelSpin(data, done));
 });
 

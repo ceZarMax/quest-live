@@ -99,6 +99,25 @@
 <script>
 
 // ════════════════════════════════════════════
+//  SONS
+// ════════════════════════════════════════════
+
+const SOUNDS = {
+  coin:   new Audio("/sounds/coin.mp3"),
+  rankup: new Audio("/sounds/rankup.mp3"),
+};
+
+// Précharge
+Object.values(SOUNDS).forEach(s => { s.preload = "auto"; });
+
+function playSound(name) {
+  const s = SOUNDS[name];
+  if (!s) return;
+  s.currentTime = 0;
+  s.play().catch(() => {}); // ignore si le fichier est absent
+}
+
+// ════════════════════════════════════════════
 //  ÉTAT GLOBAL
 // ════════════════════════════════════════════
 
@@ -167,6 +186,12 @@ socket.on("purchase", (data) => {
   renderPlayers();
   updateDatalist();
   showToast(data);
+  // Sons
+  if (data.passportCompleted || data.rankUp) {
+    playSound("rankup");
+  } else {
+    playSound("coin");
+  }
 });
 
 socket.on("resetPassport", (data) => {
