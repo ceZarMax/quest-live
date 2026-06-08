@@ -43,6 +43,7 @@ io.on("connection", (socket) => {
         total: 0,
         langSpent: { jp: 0, cn: 0, id: 0, kr: 0 },
         passport:  { jp: false, cn: false, id: false, kr: false },
+        passportCompletions: 0,
       };
     }
 
@@ -68,6 +69,7 @@ io.on("connection", (socket) => {
       passport: player.passport,
       langSpent: player.langSpent,
       stampUnlocked, passportCount, passportCompleted,
+      passportCompletions: player.passportCompletions || 0,
       rank: newRank, rankUp, nextRank,
     });
   });
@@ -77,6 +79,7 @@ io.on("connection", (socket) => {
     if (!players[user]) return;
     players[user].langSpent = { jp: 0, cn: 0, id: 0, kr: 0 };
     players[user].passport  = { jp: false, cn: false, id: false, kr: false };
+    players[user].passportCompletions = (players[user].passportCompletions || 0) + 1;
     const rank     = getRank(players[user].total);
     const nextRank = getNextRank(players[user].total);
     io.emit("resetPassport", {
@@ -85,9 +88,21 @@ io.on("connection", (socket) => {
       passport: players[user].passport,
       langSpent: players[user].langSpent,
       passportCount: 0, passportCompleted: false,
+      passportCompletions: players[user].passportCompletions,
       rank, nextRank,
     });
   });
+
+  // ── Timer langue : relay dashboard → overlay
+  socket.on("timerUpdate",        (data) => socket.broadcast.emit("timerUpdate", data));
+  socket.on("timerTick",          (data) => socket.broadcast.emit("timerTick", data));
+  socket.on("timerLangChange",    (data) => socket.broadcast.emit("timerLangChange", data));
+  socket.on("timerStop",          (data) => socket.broadcast.emit("timerStop", data));
+  socket.on("timerPause",         (data) => socket.broadcast.emit("timerPause", data));
+  socket.on("timerResume",        (data) => socket.broadcast.emit("timerResume", data));
+  socket.on("leaderboardConfig",  (data) => socket.broadcast.emit("leaderboardConfig", data));
+  socket.on("showLeaderboard",    (data) => io.emit("showLeaderboard", data));
+  socket.on("sidebarConfig",      (data) => socket.broadcast.emit("sidebarConfig", data));
 
   // ── Volume : relay dashboard → overlay
   socket.on("setVolume", (data) => {
