@@ -1,41 +1,784 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-<meta charset="utf-8">
-<title>Overlay</title>
+  <meta charset="UTF-8">
+  <title>Quest Corner Overlay</title>
+  <style>
+    /* ═══════════════════════════════════════════
+       BASE — fond transparent pour OBS
+    ═══════════════════════════════════════════ */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 1080px;
+      height: 1920px;
+      background: transparent;
+      overflow: hidden;
+      font-family: 'Arial Black', Arial, sans-serif;
+    }
+
+    /* Zone utile : 65% du haut = 1248px */
+    .stage {
+      position: absolute;
+      top: 0; left: 0;
+      width: 1080px;
+      height: 1248px;
+      overflow: hidden;
+    }
+
+    /* ═══════════════════════════════════════════
+       BANNIÈRE FIXE HAUT
+    ═══════════════════════════════════════════ */
+    .banner {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 90px;
+      background: linear-gradient(90deg, #0a1628ee, #0d1b2add, #0a1628ee);
+      border-bottom: 2px solid #d4af37;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      z-index: 10;
+    }
+
+    .banner-logo {
+      font-size: 32px;
+      font-weight: 900;
+      color: #d4af37;
+      letter-spacing: 2px;
+      text-shadow: 0 0 20px rgba(212,175,55,0.6);
+    }
+
+    .banner-logo span { color: white; font-weight: 400; }
+
+    .banner-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+
+    .banner-tag {
+      font-size: 18px;
+      color: #d4af37;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .banner-sub {
+      font-size: 14px;
+      color: #aaaaaa;
+      font-weight: 400;
+      letter-spacing: 0.5px;
+    }
+
+    .banner-dot {
+      display: inline-block;
+      width: 10px; height: 10px;
+      background: #e74c3c;
+      border-radius: 50%;
+      margin-right: 8px;
+      animation: blink 1.4s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.2; }
+    }
+
+    /* ═══════════════════════════════════════════
+       ZONE ANIMATION CENTRALE
+    ═══════════════════════════════════════════ */
+    .anim-zone {
+      position: absolute;
+      top: 90px;
+      left: 0; right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ═══════════════════════════════════════════
+       CARD GÉNÉRIQUE (achat / rang / passeport)
+    ═══════════════════════════════════════════ */
+    .event-card {
+      position: absolute;
+      width: 780px;
+      background: linear-gradient(160deg, #0d1b2a, #111c2f);
+      border: 3px solid #d4af37;
+      border-radius: 32px;
+      padding: 52px 64px;
+      text-align: center;
+      box-shadow:
+        0 0 60px rgba(212,175,55,0.35),
+        0 0 120px rgba(212,175,55,0.15),
+        inset 0 1px 0 rgba(212,175,55,0.2);
+      opacity: 0;
+      transform: scale(0.85) translateY(40px);
+      transition: opacity 0.4s cubic-bezier(0.34,1.56,0.64,1),
+                  transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+      pointer-events: none;
+    }
+
+    .event-card.visible {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+
+    .event-card.exit {
+      opacity: 0;
+      transform: scale(0.95) translateY(-30px);
+      transition: opacity 0.35s ease-in, transform 0.35s ease-in;
+    }
+
+    .ev-type {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #d4af37;
+      margin-bottom: 16px;
+      opacity: 0.85;
+    }
+
+    .ev-user {
+      font-size: 72px;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1;
+      margin-bottom: 12px;
+      text-shadow: 0 0 40px rgba(255,255,255,0.25);
+    }
+
+    .ev-amount {
+      font-size: 54px;
+      font-weight: 900;
+      color: #d4af37;
+      text-shadow: 0 0 30px rgba(212,175,55,0.6);
+      margin-bottom: 20px;
+    }
+
+    .ev-lang {
+      font-size: 32px;
+      margin-bottom: 20px;
+    }
+
+    .ev-progress-wrap {
+      margin: 0 auto 20px;
+      width: 100%;
+    }
+
+    .ev-progress-bar {
+      height: 12px;
+      background: #1a2a40;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .ev-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #b8960f, #d4af37, #e8c94a);
+      border-radius: 6px;
+      transition: width 1s ease;
+      box-shadow: 0 0 12px rgba(212,175,55,0.5);
+    }
+
+    .ev-progress-label {
+      font-size: 22px;
+      color: #aaa;
+    }
+
+    .ev-rank {
+      font-size: 40px;
+      font-weight: 700;
+      color: #d4af37;
+      margin-bottom: 10px;
+      text-shadow: 0 0 20px rgba(212,175,55,0.5);
+    }
+
+    .ev-rank-name {
+      font-size: 28px;
+      color: #ffffff;
+      opacity: 0.75;
+    }
+
+    .ev-stamps {
+      font-size: 52px;
+      letter-spacing: 10px;
+      margin: 20px 0;
+    }
+
+    .ev-reward-tag {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 14px 36px;
+      background: linear-gradient(135deg, #d4af37, #b8960f);
+      color: #08111f;
+      font-size: 28px;
+      font-weight: 900;
+      border-radius: 50px;
+      box-shadow: 0 0 30px rgba(212,175,55,0.5);
+    }
+
+    .ev-divider {
+      width: 80px;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #d4af37, transparent);
+      margin: 16px auto;
+      border-radius: 2px;
+    }
+
+    /* ═══════════════════════════════════════════
+       TAMPON DÉBLOQUÉ — badge spécial
+    ═══════════════════════════════════════════ */
+    .stamp-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #1e7d32, #2e9e42);
+      color: white;
+      font-size: 24px;
+      font-weight: 700;
+      padding: 10px 28px;
+      border-radius: 50px;
+      margin: 10px 0;
+      box-shadow: 0 0 20px rgba(46,158,66,0.5);
+    }
+
+    /* ═══════════════════════════════════════════
+       PARTICULES
+    ═══════════════════════════════════════════ */
+    .particles-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 1080px;
+      height: 1248px;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* ═══════════════════════════════════════════
+       ROUE
+    ═══════════════════════════════════════════ */
+    .wheel-overlay-wrap {
+      position: absolute;
+      width: 820px;
+      background: linear-gradient(160deg, #0a1220, #0d1b2a);
+      border: 3px solid #d4af37;
+      border-radius: 32px;
+      padding: 44px 48px 48px;
+      text-align: center;
+      box-shadow:
+        0 0 80px rgba(212,175,55,0.4),
+        0 0 160px rgba(212,175,55,0.1);
+      opacity: 0;
+      transform: scale(0.85) translateY(40px);
+      transition: opacity 0.4s cubic-bezier(0.34,1.56,0.64,1),
+                  transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+      pointer-events: none;
+    }
+
+    .wheel-overlay-wrap.visible {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+
+    .wheel-overlay-wrap.exit {
+      opacity: 0;
+      transform: scale(0.92) translateY(-30px);
+      transition: opacity 0.4s ease-in, transform 0.4s ease-in;
+    }
+
+    .wheel-overlay-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #d4af37;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .wheel-overlay-player {
+      font-size: 56px;
+      font-weight: 900;
+      color: white;
+      margin-bottom: 24px;
+      text-shadow: 0 0 30px rgba(255,255,255,0.2);
+    }
+
+    .wheel-container-obs {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+
+    #wheel-obs {
+      filter: drop-shadow(0 0 24px rgba(212,175,55,0.4));
+    }
+
+    .wheel-needle-obs {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 40px;
+      color: #e74c3c;
+      text-shadow:
+        0 0 16px rgba(231,76,60,1),
+        0 0 32px rgba(231,76,60,0.6);
+      z-index: 2;
+      line-height: 1;
+    }
+
+    .wheel-result-obs {
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .result-obs-box {
+      padding: 18px 48px;
+      border-radius: 16px;
+      font-size: 38px;
+      font-weight: 900;
+      box-shadow: 0 0 40px rgba(212,175,55,0.5);
+      animation: resultPop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    @keyframes resultPop {
+      from { transform: scale(0.4); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+  </style>
 </head>
 <body>
 
-<h1 id="event"></h1>
+<div class="stage">
+
+  <!-- Bannière fixe -->
+  <div class="banner">
+    <div class="banner-logo">QUEST<span>CORNER</span></div>
+    <div class="banner-right">
+      <div class="banner-tag">
+        <span class="banner-dot"></span>ENCHÈRES LIVE — 1€
+      </div>
+      <div class="banner-sub">🛂 Complète ton Passeport · 🏆 Monte en Rang · 🎰 Gagne des Boosters</div>
+    </div>
+  </div>
+
+  <!-- Zone animation -->
+  <div class="anim-zone" id="anim-zone">
+    <!-- Les cards s'injectent ici dynamiquement -->
+  </div>
+
+  <!-- Particules canvas -->
+  <canvas class="particles-canvas" id="particles-canvas"></canvas>
+
+</div>
 
 <script src="/socket.io/socket.io.js"></script>
-
 <script>
+
+// ════════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════════
+
+const WHEEL_COLORS = [
+  "#d4af37","#0d1b2a",
+  "#c9a84c","#152035",
+  "#b8960f","#1a2a40",
+  "#e8c94a","#0a1628",
+];
+
+const LANG_NAMES = {
+  jp: "🇯🇵 Japon",
+  cn: "🇨🇳 Chine",
+  id: "🇮🇩 Indonésie",
+  kr: "🇰🇷 Corée",
+};
+
+// ════════════════════════════════════════════
+//  PARTICULES
+// ════════════════════════════════════════════
+
+const pCanvas = document.getElementById("particles-canvas");
+const pCtx    = pCanvas.getContext("2d");
+pCanvas.width  = 1080;
+pCanvas.height = 1248;
+
+let particles = [];
+
+function spawnParticles(type) {
+  const count = type === "passport" ? 120 : type === "rankup" ? 70 : 40;
+  const colors = type === "passport"
+    ? ["#d4af37","#e8c94a","#ffffff","#4caf50","#c9a84c"]
+    : type === "rankup"
+    ? ["#d4af37","#e8c94a","#ffffff","#f0c030"]
+    : ["#d4af37","#c9a84c","#ffffff"];
+
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: 540 + (Math.random() - 0.5) * 600,
+      y: 624 + (Math.random() - 0.5) * 400,
+      vx: (Math.random() - 0.5) * 14,
+      vy: (Math.random() - 0.5) * 14 - 4,
+      size: 4 + Math.random() * 10,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      alpha: 1,
+      decay: 0.012 + Math.random() * 0.018,
+      shape: Math.random() > 0.5 ? "circle" : "rect",
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.2,
+    });
+  }
+  if (!particleLoopRunning) particleLoop();
+}
+
+let particleLoopRunning = false;
+
+function particleLoop() {
+  particleLoopRunning = true;
+  pCtx.clearRect(0, 0, 1080, 1248);
+
+  particles = particles.filter(p => p.alpha > 0.02);
+
+  for (const p of particles) {
+    p.x  += p.vx;
+    p.y  += p.vy;
+    p.vy += 0.3; // gravité
+    p.rot += p.rotSpeed;
+    p.alpha -= p.decay;
+
+    pCtx.save();
+    pCtx.globalAlpha = Math.max(0, p.alpha);
+    pCtx.fillStyle = p.color;
+    pCtx.translate(p.x, p.y);
+    pCtx.rotate(p.rot);
+
+    if (p.shape === "circle") {
+      pCtx.beginPath();
+      pCtx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+      pCtx.fill();
+    } else {
+      pCtx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+    }
+    pCtx.restore();
+  }
+
+  if (particles.length > 0) {
+    requestAnimationFrame(particleLoop);
+  } else {
+    particleLoopRunning = false;
+  }
+}
+
+// ════════════════════════════════════════════
+//  FILE D'ATTENTE D'ANIMATIONS
+// ════════════════════════════════════════════
+
+let animQueue = [];
+let animBusy  = false;
+
+function queueAnim(fn) {
+  animQueue.push(fn);
+  if (!animBusy) processQueue();
+}
+
+function processQueue() {
+  if (animQueue.length === 0) { animBusy = false; return; }
+  animBusy = true;
+  const next = animQueue.shift();
+  next(() => {
+    setTimeout(processQueue, 200);
+  });
+}
+
+// ════════════════════════════════════════════
+//  SHOW / HIDE CARD
+// ════════════════════════════════════════════
+
+const animZone = document.getElementById("anim-zone");
+
+function showCard(html, duration, onDone) {
+  const card = document.createElement("div");
+  card.className = "event-card";
+  card.innerHTML  = html;
+  animZone.appendChild(card);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { card.classList.add("visible"); });
+  });
+
+  setTimeout(() => {
+    card.classList.remove("visible");
+    card.classList.add("exit");
+    setTimeout(() => {
+      card.remove();
+      onDone();
+    }, 400);
+  }, duration);
+}
+
+// ════════════════════════════════════════════
+//  ANIMATIONS PAR TYPE
+// ════════════════════════════════════════════
+
+function animPurchase(data, onDone) {
+  const rank     = data.rank || { emoji:"🌱", name:"Explorateur" };
+  const langSpent = data.langSpent[data.lang];
+  const pct       = Math.min(langSpent / 10 * 100, 100);
+
+  let extra = "";
+  if (data.stampUnlocked) {
+    extra = `
+      <div class="stamp-badge">✅ TAMPON DÉBLOQUÉ — ${LANG_NAMES[data.lang]}</div>
+      <div class="ev-divider"></div>
+      <div style="font-size:22px;color:#aaa;">🛂 ${data.passportCount}/4 tampons</div>
+    `;
+    spawnParticles("stamp");
+  } else {
+    extra = `
+      <div class="ev-lang">${LANG_NAMES[data.lang]}</div>
+      <div class="ev-progress-wrap">
+        <div class="ev-progress-bar">
+          <div class="ev-progress-fill" id="pfill" style="width:0%"></div>
+        </div>
+        <div class="ev-progress-label">${langSpent}€ / 10€</div>
+      </div>
+      <div style="font-size:20px;color:#aaa;">${rank.emoji} ${rank.name}</div>
+    `;
+    spawnParticles("purchase");
+  }
+
+  const html = `
+    <div class="ev-type">💰 Achat</div>
+    <div class="ev-user">${data.user}</div>
+    <div class="ev-amount">+${data.amount}€</div>
+    ${extra}
+  `;
+
+  showCard(html, 4500, () => {
+    onDone();
+  });
+
+  // Anime la barre de progression
+  if (!data.stampUnlocked) {
+    setTimeout(() => {
+      const fill = document.getElementById("pfill");
+      if (fill) fill.style.width = pct + "%";
+    }, 200);
+  }
+}
+
+function animRankUp(data, onDone) {
+  const rank = data.rank || { emoji:"🏆", name:"Rang max" };
+  spawnParticles("rankup");
+
+  const html = `
+    <div class="ev-type">🎖️ Nouveau Rang</div>
+    <div class="ev-user">${data.user}</div>
+    <div class="ev-divider"></div>
+    <div class="ev-rank">${rank.emoji}</div>
+    <div class="ev-rank-name">${rank.name}</div>
+  `;
+
+  showCard(html, 4500, onDone);
+}
+
+function animPassport(data, onDone) {
+  spawnParticles("passport");
+
+  const html = `
+    <div class="ev-type">🏆 Passeport Complété</div>
+    <div class="ev-user">${data.user}</div>
+    <div class="ev-stamps">🇯🇵✅ 🇨🇳✅ 🇮🇩✅ 🇰🇷✅</div>
+    <div class="ev-divider"></div>
+    <div class="ev-reward-tag">🎰 Roue de la chance disponible</div>
+  `;
+
+  showCard(html, 5500, onDone);
+}
+
+// ════════════════════════════════════════════
+//  ROUE SYNCHRONISÉE
+// ════════════════════════════════════════════
+
+function drawWheelObs(ctx, cx, cy, radius, normalizedRewards, rotationAngle) {
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+  // Fond + bordure
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius + 6, 0, Math.PI * 2);
+  ctx.fillStyle = "#0a1620";
+  ctx.fill();
+  ctx.strokeStyle = "#d4af37";
+  ctx.lineWidth = 5;
+  ctx.stroke();
+
+  // Halo extérieur
+  const glow = ctx.createRadialGradient(cx, cy, radius - 10, cx, cy, radius + 40);
+  glow.addColorStop(0, "rgba(212,175,55,0.15)");
+  glow.addColorStop(1, "rgba(212,175,55,0)");
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius + 40, 0, Math.PI * 2);
+  ctx.fillStyle = glow;
+  ctx.fill();
+
+  let startAngle = rotationAngle;
+
+  normalizedRewards.forEach((r, i) => {
+    const slice    = r.norm * Math.PI * 2;
+    const endAngle = startAngle + slice;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = WHEEL_COLORS[i % WHEEL_COLORS.length];
+    ctx.fill();
+    ctx.strokeStyle = "#08111f";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Texte
+    const midAngle   = startAngle + slice / 2;
+    const textRadius = radius * 0.66;
+    const tx = cx + Math.cos(midAngle) * textRadius;
+    const ty = cy + Math.sin(midAngle) * textRadius;
+
+    ctx.save();
+    ctx.translate(tx, ty);
+    ctx.rotate(midAngle + Math.PI / 2);
+
+    const isLight = ["#d4af37","#c9a84c","#b8960f","#e8c94a"]
+                    .includes(WHEEL_COLORS[i % WHEEL_COLORS.length]);
+    ctx.fillStyle = isLight ? "#08111f" : "#d4af37";
+
+    const label = r.name.length > 12 ? r.name.slice(0, 11) + "…" : r.name;
+    ctx.font = "bold 18px Arial";
+    ctx.textAlign    = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, 0, 0);
+    ctx.restore();
+
+    startAngle = endAngle;
+  });
+
+  // Centre
+  ctx.beginPath();
+  ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+  const centerGrad = ctx.createRadialGradient(cx-4, cy-4, 2, cx, cy, 22);
+  centerGrad.addColorStop(0, "#e8c94a");
+  centerGrad.addColorStop(1, "#b8960f");
+  ctx.fillStyle = centerGrad;
+  ctx.fill();
+  ctx.strokeStyle = "#08111f";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+}
+
+function animWheelSpin(data, onDone) {
+  const { user, rewards: normalizedRewards, winIndex, targetAngle, duration, emitAt } = data;
+  spawnParticles("rankup");
+
+  // Injecte le bloc roue dans la zone
+  const wrap = document.createElement("div");
+  wrap.className = "wheel-overlay-wrap";
+  wrap.innerHTML = `
+    <div class="wheel-overlay-title">🎰 Roue de la chance</div>
+    <div class="wheel-overlay-player">${user}</div>
+    <div class="wheel-container-obs">
+      <canvas id="wheel-obs" width="500" height="500"></canvas>
+      <div class="wheel-needle-obs">▼</div>
+    </div>
+    <div class="wheel-result-obs" id="wheel-result-obs"></div>
+  `;
+  animZone.appendChild(wrap);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { wrap.classList.add("visible"); });
+  });
+
+  const canvas = document.getElementById("wheel-obs");
+  const ctx    = canvas.getContext("2d");
+  const cx     = 250, cy = 250, radius = 230;
+
+  // Compense le délai réseau : on calcule combien de ms se sont écoulées
+  // depuis que le dashboard a lancé son spin, et on démarre à ce point
+  const networkDelay = emitAt ? Math.min(Date.now() - emitAt, duration * 0.1) : 0;
+  const startTime    = performance.now() - networkDelay;
+
+  function easeOut(t) { return 1 - Math.pow(1 - t, 4); }
+
+  function animate(now) {
+    const elapsed  = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const angle    = easeOut(progress) * targetAngle;
+
+    drawWheelObs(ctx, cx, cy, radius, normalizedRewards, angle);
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      // Résultat
+      setTimeout(() => {
+        spawnParticles("passport");
+        const reward  = normalizedRewards[winIndex];
+        const color   = WHEEL_COLORS[winIndex % WHEEL_COLORS.length];
+        const isLight = ["#d4af37","#c9a84c","#b8960f","#e8c94a"].includes(color);
+        document.getElementById("wheel-result-obs").innerHTML = `
+          <div class="result-obs-box" style="background:${color}; color:${isLight ? '#08111f':'#d4af37'}">
+            🎁 ${reward.name}
+          </div>
+        `;
+
+        // Masque après affichage du résultat
+        setTimeout(() => {
+          wrap.classList.remove("visible");
+          wrap.classList.add("exit");
+          setTimeout(() => { wrap.remove(); onDone(); }, 500);
+        }, 4000);
+
+      }, 600);
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+// ════════════════════════════════════════════
+//  SOCKET
+// ════════════════════════════════════════════
 
 const socket = io();
 
 socket.on("purchase", (data) => {
 
-document.getElementById("event").innerHTML = `
+  // Rang avant passeport pour ne pas les empiler dans le mauvais ordre
+  if (data.rankUp && !data.passportCompleted) {
+    queueAnim((done) => animRankUp(data, done));
+  }
 
-<h1>${data.user}</h1>
+  if (data.passportCompleted) {
+    queueAnim((done) => animPassport(data, done));
+  } else {
+    queueAnim((done) => animPurchase(data, done));
+  }
 
-<h2>+${data.amount}€</h2>
+  // Si rank up ET achat normal (pas passeport), on a déjà mis rankUp d'abord
+  if (data.rankUp && !data.passportCompleted) {
+    // rankUp déjà en queue, purchase normal suit
+  }
+});
 
-<h3>Total : ${data.total}€</h3>
-
-<p>
-🇯🇵 ${data.passport.jp ? '✅' : '❌'}
-🇨🇳 ${data.passport.cn ? '✅' : '❌'}
-🇮🇩 ${data.passport.id ? '✅' : '❌'}
-🇰🇷 ${data.passport.kr ? '✅' : '❌'}
-</p>
-
-`;
-
+socket.on("spinWheel", (data) => {
+  queueAnim((done) => animWheelSpin(data, done));
 });
 
 </script>
-
 </body>
 </html>

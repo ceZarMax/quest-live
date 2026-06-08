@@ -519,7 +519,21 @@ function spinWheel(canvasId, resultId, onDone, setSpinning) {
   const extraSpins = (5 + Math.floor(Math.random() * 4)) * Math.PI * 2;
   const targetAngle = -Math.PI / 2 - (winCenter + jitter) + extraSpins;
 
+  // ── Démarre le timer ICI, avant d'émettre, pour que l'overlay démarre au même instant
   const startTime = performance.now();
+
+  // ── Synchronise l'overlay OBS (seulement pour le vrai spin, pas le preview)
+  // On envoie emitAt = Date.now() pour que l'overlay compense le délai réseau
+  if (canvasId === "wheel-spin") {
+    socket.emit("spinWheel", {
+      user: wheelTargetUser,
+      rewards: normalized,
+      winIndex,
+      targetAngle,
+      duration,
+      emitAt: Date.now(),
+    });
+  }
 
   function easeOut(t) { return 1 - Math.pow(1 - t, 4); }
 
@@ -533,7 +547,6 @@ function spinWheel(canvasId, resultId, onDone, setSpinning) {
     if (progress < 1) {
       requestAnimationFrame(animate);
     } else {
-      // Fin du spin
       if (canvasId === "wheel-preview") {
         const btn = document.getElementById("btn-test-spin");
         btn.disabled = false;
