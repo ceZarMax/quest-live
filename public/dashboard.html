@@ -31,6 +31,13 @@
           <option value="kr">🇰🇷 Corée</option>
         </select>
         <button id="send">💰 Ajouter achat</button>
+
+        <div class="volume-row">
+          <span class="volume-icon">🔊</span>
+          <input type="range" id="vol-slider" min="0" max="1" step="0.05" value="0.8"
+                 oninput="setVolume(this.value)">
+          <span id="vol-label" class="volume-label">80%</span>
+        </div>
       </div>
     </div>
     <div class="content">
@@ -107,14 +114,23 @@ const SOUNDS = {
   rankup: new Audio("/sounds/rankup.mp3"),
 };
 
-// Précharge
+let masterVolume = 0.8; // 0.0 → 1.0
+
 Object.values(SOUNDS).forEach(s => { s.preload = "auto"; });
 
 function playSound(name) {
   const s = SOUNDS[name];
   if (!s) return;
+  s.volume = masterVolume;
   s.currentTime = 0;
-  s.play().catch(() => {}); // ignore si le fichier est absent
+  s.play().catch(() => {});
+}
+
+function setVolume(val) {
+  masterVolume = parseFloat(val);
+  document.getElementById("vol-label").textContent = Math.round(masterVolume * 100) + "%";
+  // Sync overlay via socket
+  socket.emit("setVolume", { volume: masterVolume });
 }
 
 // ════════════════════════════════════════════

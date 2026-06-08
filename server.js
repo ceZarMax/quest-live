@@ -89,6 +89,11 @@ io.on("connection", (socket) => {
     });
   });
 
+  // ── Volume : relay dashboard → overlay
+  socket.on("setVolume", (data) => {
+    socket.broadcast.emit("setVolume", data);
+  });
+
   // ── Spin roue : le dashboard envoie les paramètres, le serveur rebroadcast à tous (overlay inclus)
   socket.on("spinWheel", (data) => {
     // data : { user, rewards (normalisés), winIndex, targetAngle, duration }
