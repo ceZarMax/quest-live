@@ -721,9 +721,10 @@
     ═══════════════════════════════════════════ */
     .pill-notif {
       position: absolute;
-      left: 28px;
-      bottom: 40px;
-      width: 580px;
+      left: 50%;
+      top: 50%;
+      transform: translateX(-50%) translateY(calc(-50% + 20px)) scale(0.97);
+      width: 900px;
       background: linear-gradient(135deg, #0a1628f0, #0d1b2af5);
       border: 2px solid #d4af37;
       border-radius: 18px;
@@ -742,12 +743,12 @@
 
     .pill-notif.visible {
       opacity: 1;
-      transform: translateY(0) scale(1);
+      transform: translateX(-50%) translateY(-50%) scale(1);
     }
 
     .pill-notif.exit {
       opacity: 0;
-      transform: translateY(10px) scale(0.98);
+      transform: translateX(-50%) translateY(calc(-50% + 10px)) scale(0.98);
       transition: opacity 0.25s ease-in, transform 0.25s ease-in;
     }
 

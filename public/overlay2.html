@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Quest Corner — Frame Premium</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 1080px;
+      height: 1920px;
+      background: transparent;
+      overflow: hidden;
+    }
+
+    /* ═══════════════════
+       COINS — SVG légers
+    ═══════════════════ */
+    .corner {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .corner-tl { top: 0;    left: 0; }
+    .corner-tr { top: 0;    right: 0;  transform: scaleX(-1); }
+    .corner-bl { bottom: 0; left: 0;   transform: scaleY(-1); }
+    .corner-br { bottom: 0; right: 0;  transform: scale(-1,-1); }
+
+    /* ═══════════════════
+       BORDURES
+    ═══════════════════ */
+    .border-h {
+      position: absolute;
+      left: 110px; right: 110px;
+      height: 2px;
+      pointer-events: none;
+      z-index: 9;
+    }
+    .border-h-top    { top: 14px; }
+    .border-h-bottom { bottom: 14px; }
+
+    .border-v {
+      position: absolute;
+      top: 110px; bottom: 110px;
+      width: 2px;
+      pointer-events: none;
+      z-index: 9;
+    }
+    .border-v-left  { left: 14px; }
+    .border-v-right { right: 14px; }
+
+    /* ═══════════════════
+       GLOW BORDS (CSS pur)
+    ═══════════════════ */
+    .glow-edge {
+      position: absolute;
+      pointer-events: none;
+      z-index: 8;
+    }
+
+    .glow-top {
+      top: 0; left: 80px; right: 80px;
+      height: 1px;
+      background: linear-gradient(90deg,
+        transparent,
+        rgba(212,175,55,0.0) 5%,
+        rgba(212,175,55,0.7) 40%,
+        rgba(232,201,74,1)   50%,
+        rgba(212,175,55,0.7) 60%,
+        rgba(212,175,55,0.0) 95%,
+        transparent
+      );
+      filter: blur(0.5px);
+    }
+    .glow-top-soft {
+      top: 0; left: 60px; right: 60px;
+      height: 24px;
+      background: linear-gradient(180deg,
+        rgba(212,175,55,0.12) 0%,
+        transparent 100%
+      );
+      filter: blur(4px);
+      animation: glow-breathe 5s ease-in-out infinite;
+    }
+
+    .glow-bottom {
+      bottom: 0; left: 80px; right: 80px;
+      height: 1px;
+      background: linear-gradient(90deg,
+        transparent,
+        rgba(212,175,55,0.0) 5%,
+        rgba(212,175,55,0.7) 40%,
+        rgba(232,201,74,1)   50%,
+        rgba(212,175,55,0.7) 60%,
+        rgba(212,175,55,0.0) 95%,
+        transparent
+      );
+      filter: blur(0.5px);
+    }
+    .glow-bottom-soft {
+      bottom: 0; left: 60px; right: 60px;
+      height: 24px;
+      background: linear-gradient(0deg,
+        rgba(212,175,55,0.12) 0%,
+        transparent 100%
+      );
+      filter: blur(4px);
+      animation: glow-breathe 5s ease-in-out infinite 1s;
+    }
+
+    .glow-left {
+      left: 0; top: 80px; bottom: 80px;
+      width: 1px;
+      background: linear-gradient(180deg,
+        transparent,
+        rgba(212,175,55,0.0) 5%,
+        rgba(212,175,55,0.6) 40%,
+        rgba(232,201,74,0.9) 50%,
+        rgba(212,175,55,0.6) 60%,
+        rgba(212,175,55,0.0) 95%,
+        transparent
+      );
+      filter: blur(0.5px);
+    }
+    .glow-left-soft {
+      left: 0; top: 60px; bottom: 60px;
+      width: 24px;
+      background: linear-gradient(90deg,
+        rgba(212,175,55,0.1) 0%,
+        transparent 100%
+      );
+      filter: blur(6px);
+      animation: glow-breathe 6s ease-in-out infinite 0.5s;
+    }
+
+    .glow-right {
+      right: 0; top: 80px; bottom: 80px;
+      width: 1px;
+      background: linear-gradient(180deg,
+        transparent,
+        rgba(212,175,55,0.0) 5%,
+        rgba(212,175,55,0.6) 40%,
+        rgba(232,201,74,0.9) 50%,
+        rgba(212,175,55,0.6) 60%,
+        rgba(212,175,55,0.0) 95%,
+        transparent
+      );
+      filter: blur(0.5px);
+    }
+    .glow-right-soft {
+      right: 0; top: 60px; bottom: 60px;
+      width: 24px;
+      background: linear-gradient(270deg,
+        rgba(212,175,55,0.1) 0%,
+        transparent 100%
+      );
+      filter: blur(6px);
+      animation: glow-breathe 6s ease-in-out infinite 2s;
+    }
+
+    @keyframes glow-breathe {
+      0%, 100% { opacity: 0.6; }
+      50%       { opacity: 1.0; }
+    }
+
+    /* ═══════════════════
+       PARTICULES
+    ═══════════════════ */
+    .spark {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 11;
+      background: radial-gradient(circle, rgba(232,201,74,0.9), rgba(212,175,55,0.3));
+      animation: spark-float var(--dur) ease-in var(--delay) infinite;
+      opacity: 0;
+    }
+
+    @keyframes spark-float {
+      0%   { opacity: 0;   transform: translateY(0)               scale(1);   }
+      15%  { opacity: 0.8; }
+      85%  { opacity: 0.2; }
+      100% { opacity: 0;   transform: translateY(var(--travel))   scale(0.4); }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- ════════════════════════════════════
+       GLOW BORDS
+  ════════════════════════════════════ -->
+  <div class="glow-edge glow-top"></div>
+  <div class="glow-edge glow-top-soft"></div>
+  <div class="glow-edge glow-bottom"></div>
+  <div class="glow-edge glow-bottom-soft"></div>
+  <div class="glow-edge glow-left"></div>
+  <div class="glow-edge glow-left-soft"></div>
+  <div class="glow-edge glow-right"></div>
+  <div class="glow-edge glow-right-soft"></div>
+
+  <!-- ════════════════════════════════════
+       COINS SVG — fins et gravés
+  ════════════════════════════════════ -->
+
+  <!-- Top-left -->
+  <div class="corner corner-tl">
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="g-tl" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stop-color="#e8c94a" stop-opacity="1"/>
+          <stop offset="60%"  stop-color="#d4af37" stop-opacity="0.9"/>
+          <stop offset="100%" stop-color="#9a7d1a" stop-opacity="0.5"/>
+        </linearGradient>
+        <filter id="f-glow-c">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+
+      <!-- Ligne L principale -->
+      <path d="M4,100 L4,4 L100,4"
+            fill="none" stroke="url(#g-tl)" stroke-width="1.5"
+            stroke-linecap="round" filter="url(#f-glow-c)"/>
+
+      <!-- Ligne intérieure fine -->
+      <path d="M10,90 L10,10 L90,10"
+            fill="none" stroke="rgba(212,175,55,0.25)" stroke-width="0.75"
+            stroke-linecap="round"/>
+
+      <!-- Ornement coin — croix fine -->
+      <line x1="4"  y1="4" x2="18" y2="18"
+            stroke="rgba(212,175,55,0.3)" stroke-width="0.75"/>
+
+      <!-- Carré gravé au coin -->
+      <rect x="0" y="0" width="16" height="16" rx="2"
+            fill="rgba(10,18,32,0.8)" stroke="url(#g-tl)" stroke-width="1.2"
+            filter="url(#f-glow-c)"/>
+      <!-- Croix dans le carré -->
+      <line x1="4"  y1="8"  x2="12" y2="8"  stroke="rgba(212,175,55,0.5)" stroke-width="0.75"/>
+      <line x1="8"  y1="4"  x2="8"  y2="12" stroke="rgba(212,175,55,0.5)" stroke-width="0.75"/>
+
+      <!-- Petit losange sur la ligne H -->
+      <path d="M56,4 L60,8 L56,12 L52,8 Z"
+            fill="rgba(10,18,32,0.9)" stroke="rgba(212,175,55,0.55)" stroke-width="1"/>
+
+      <!-- Petit losange sur la ligne V -->
+      <path d="M4,56 L8,60 L4,64 L0,60 Z"
+            fill="rgba(10,18,32,0.9)" stroke="rgba(212,175,55,0.55)" stroke-width="1"/>
+
+      <!-- Tick marks sur la bordure H -->
+      <line x1="30" y1="4" x2="30" y2="8"  stroke="rgba(212,175,55,0.4)" stroke-width="0.75"/>
+      <line x1="80" y1="4" x2="80" y2="8"  stroke="rgba(212,175,55,0.4)" stroke-width="0.75"/>
+
+      <!-- Tick marks sur la bordure V -->
+      <line x1="4" y1="30" x2="8" y2="30" stroke="rgba(212,175,55,0.4)" stroke-width="0.75"/>
+      <line x1="4" y1="80" x2="8" y2="80" stroke="rgba(212,175,55,0.4)" stroke-width="0.75"/>
+
+      <!-- Glow pulse coin -->
+      <rect x="0" y="0" width="16" height="16" rx="2"
+            fill="none" stroke="rgba(212,175,55,0.4)" stroke-width="6"
+            filter="url(#f-glow-c)">
+        <animate attributeName="opacity" values="0.3;0.8;0.3" dur="3s" repeatCount="indefinite"/>
+      </rect>
+    </svg>
+  </div>
+
+  <!-- Top-right (miroir H) -->
+  <div class="corner corner-tr">
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="g-tr" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stop-color="#e8c94a" stop-opacity="1"/>
+          <stop offset="60%"  stop-color="#d4af37" stop-opacity="0.9"/>
+          <stop offset="100%" stop-color="#9a7d1a" stop-opacity="0.5"/>
+        </linearGradient>
+        <filter id="f-glow-tr">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <path d="M4,100 L4,4 L100,4"
+            fill="none" stroke="url(#g-tr)" stroke-width="1.5"
+            stroke-linecap="round" filter="url(#f-glow-tr)"/>
+      <path d="M10,90 L10,10 L90,10"
+            fill="none" stroke="rgba(212,175,55,0.25)" stroke-width="0.75"
+            stroke-linecap="round"/>
+      <line x1="4" y1="4" x2="18" y2="18"
+            stroke="rgba(212,175,55,0.3)" stroke-width="0.75"/>
+      <rect x="0" y="0" width="16" height="16" rx="2"
+            fill="rgba(10,18,32,0.8)" stroke="url(#g-tr)" stroke-width="1.2"
+            filter="url(#f-glow-tr)"/>
+      <line x1="4" y1="8" x2="12" y2="8" stroke="rgba(212,175,55,0.5)" stroke-width="0.75"/>
+      <line x1="8" y1="4" x2="8" y2="12" stroke="rgba(212,175,55,0.5)" stroke-width="0.75"/>
+      <path d="M56,4 L60,8 L56,12 L52,8 Z"
+            fill="rgba(10,18,32,0.9)" stroke="rgba(212,175,55,0.55)" stroke-width="1"/>
+      <path d="M4,56 L8,60 L4,64 L0,60 Z"
+            fill="rgba(10,18,32,0.9)" stroke="rgba(212,175,55,0.55)" stroke-width="1"/>
+      <line x1="30" y1="4" x2="30" y2="8" stroke="rgba(212,175,55,0.4)" stroke-width="0.75"/>
+      <line x1="80" y1="4" x2="80" y2="8" stroke="rgba(212,175,55,0.4)" stroke-width="0.75"/>
+      <line x1="4" y1="30" x2="8" y2="30" stroke="rgba(212,175,55,0.4)" stroke-width="0.75"/>
+      <line x1="4" y1="80" x2="8" y2="80" stroke="rgba(212,175,55,0.4)" stroke-width="0.75"/>
+      <rect x="0" y="0" width="16" height="16" rx="2"
+            fill="none" stroke="rgba(212,175,55,0.4)" stroke-width="6"
+            filter="url(#f-glow-tr)">
+        <animate attributeName="opacity" values="0.3;0.8;0.3" dur="3s" begin="1s" repeatCount="indefinite"/>
+      </rect>
+    </svg>
+  </div>
+
+  <!-- Bottom-left (miroir V) -->
+  <div class="corner corner-bl">
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="g-bl" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stop-color="#e8c94a" stop-opacity="1"/>
+          <stop offset="60%"  stop-color="#d4af37" stop-opacity="0.9"/>
+          <stop offset="100%" stop-color="#9a7d1a" stop-opacity="0.5"/>
+        </linearGradient>
+        <filter id="f-glow-bl">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <path d="M4,100 L4,4 L100,4"
+            fill="none" stroke="url(#g-bl)" stroke-width="1.5"
+            stroke-linecap="round" filter="url(#f-glow-bl)"/>
+      <path d="M10,90 L10,10 L90,10"
+            fill="none" stroke="rgba(212,175,55,0.25)" stroke-width="0.75"
+            stroke-linecap="round"/>
+      <line x1="4" y1="4" x2="18" y2="18"
+            stroke="rgba(212,175,55,0.3)" stroke-width="0.75"/>
+      <rect x="0" y="0" width="16" height="16" rx="2"
+            fill="rgba(10,18,32,0.8)" stroke="url(#g-bl)" stroke-width="1.2"
+            filter="url(#f-glow-bl)"/>
+      <line x1="4" y1="8" x2="12" y2="8" stroke="rgba(212,175,55,0.5)" stroke-width="0.75"/>
+      <line x1="8" y1="4" x2="8" y2="12" stroke="rgba(212,175,55,0.5)" stroke-width="0.75"/>
+      <path d="M56,4 L60,8 L56,12 L52,8 Z"
+            fill="rgba(10,18,32,0.9)" stroke="rgba(212,175,55,0.55)" stroke-width="1"/>
+      <path d="M4,56 L8,60 L4,64 L0,60 Z"
+            fill="rgba(10,18,32,0.9)" stroke="rgba(212,175,55,0.55)" stroke-width="1"/>
+      <line x1="30" y1="4" x2="30" y2="8" stroke="rgba(212,175,55,0.4)" stroke-width="0.75"/>
+      <line x1="80" y1="4" x2="80" y2="8" stroke="rgba(212,175,55,0.4)" stroke-width="0.75"/>
+      <line x1="4" y1="30" x2="8" y2="30" stroke="rgba(212,175,55,0.4)" stroke-width="0.75"/>
+      <line x1="4" y1="80" x2="8" y2="80" stroke="rgba(212,175,55,0.4)" stroke-width="0.75"/>
+      <rect x="0" y="0" width="16" height="16" rx="2"
+            fill="none" stroke="rgba(212,175,55,0.4)" stroke-width="6"
+            filter="url(#f-glow-bl)">
+        <animate attributeName="opacity" values="0.3;0.8;0.3" dur="3s" begin="2s" repeatCount="indefinite"/>
+      </rect>
+    </svg>
+  </div>
+
+  <!-- Bottom-right (miroir HV) -->
+  <div class="corner corner-br">
+    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="g-br" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"   stop-color="#e8c94a" stop-opacity="1"/>
+          <stop offset="60%"  stop-color="#d4af37" stop-opacity="0.9"/>
+          <stop offset="100%" stop-color="#9a7d1a" stop-opacity="0.5"/>
+        </linearGradient>
+        <filter id="f-glow-br">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <path d="M4,100 L4,4 L100,4"
+            fill="none" stroke="url(#g-br)" stroke-width="1.5"
+            stroke-linecap="round" filter="url(#f-glow-br)"/>
+      <path d="M10,90 L10,10 L90,10"
+            fill="none" stroke="rgba(212,175,55,0.25)" stroke-width="0.75"
+            stroke-linecap="round"/>
+      <line x1="4" y1="4" x2="18" y2="18"
+            stroke="rgba(212,175,55,0.3)" stroke-width="0.75"/>
+      <rect x="0" y="0" width="16" height="16" rx="2"
+            fill="rgba(10,18,32,0.8)" stroke="url(#g-br)" stroke-width="1.2"
+            filter="url(#f-glow-br)"/>
+      <line x1="4" y1="8" x2="12" y2="8" stroke="rgba(212,175,55,0.5)" stroke-width="0.75"/>
+      <line x1="8" y1="4" x2="8" y2="12" stroke="rgba(212,175,55,0.5)" stroke-width="0.75"/>
+      <path d="M56,4 L60,8 L56,12 L52,8 Z"
+            fill="rgba(10,18,32,0.9)" stroke="rgba(212,175,55,0.55)" stroke-width="1"/>
+      <path d="M4,56 L8,60 L4,64 L0,60 Z"
+            fill="rgba(10,18,32,0.9)" stroke="rgba(212,175,55,0.55)" stroke-width="1"/>
+      <line x1="30" y1="4" x2="30" y2="8" stroke="rgba(212,175,55,0.4)" stroke-width="0.75"/>
+      <line x1="80" y1="4" x2="80" y2="8" stroke="rgba(212,175,55,0.4)" stroke-width="0.75"/>
+      <line x1="4" y1="30" x2="8" y2="30" stroke="rgba(212,175,55,0.4)" stroke-width="0.75"/>
+      <line x1="4" y1="80" x2="8" y2="80" stroke="rgba(212,175,55,0.4)" stroke-width="0.75"/>
+      <rect x="0" y="0" width="16" height="16" rx="2"
+            fill="none" stroke="rgba(212,175,55,0.4)" stroke-width="6"
+            filter="url(#f-glow-br)">
+        <animate attributeName="opacity" values="0.3;0.8;0.3" dur="3s" begin="0.5s" repeatCount="indefinite"/>
+      </rect>
+    </svg>
+  </div>
+
+  <!-- ════════════════════════════════════
+       BORDURES HORIZONTALES SVG
+  ════════════════════════════════════ -->
+
+  <!-- Top -->
+  <div class="border-h border-h-top">
+    <svg viewBox="0 0 860 2" preserveAspectRatio="none"
+         width="100%" height="2" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bh-top" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"   stop-color="rgba(212,175,55,0)"/>
+          <stop offset="8%"   stop-color="rgba(212,175,55,0.8)"/>
+          <stop offset="50%"  stop-color="rgba(232,201,74,1)"/>
+          <stop offset="92%"  stop-color="rgba(212,175,55,0.8)"/>
+          <stop offset="100%" stop-color="rgba(212,175,55,0)"/>
+        </linearGradient>
+        <filter id="bh-glow">
+          <feGaussianBlur stdDeviation="1.5"/>
+        </filter>
+      </defs>
+      <!-- Glow derrière -->
+      <rect width="860" height="2" fill="url(#bh-top)" filter="url(#bh-glow)" opacity="0.5"/>
+      <!-- Ligne nette -->
+      <rect width="860" height="1" fill="url(#bh-top)"/>
+    </svg>
+  </div>
+
+  <!-- Bottom -->
+  <div class="border-h border-h-bottom">
+    <svg viewBox="0 0 860 2" preserveAspectRatio="none"
+         width="100%" height="2" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bh-bot" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"   stop-color="rgba(212,175,55,0)"/>
+          <stop offset="8%"   stop-color="rgba(212,175,55,0.8)"/>
+          <stop offset="50%"  stop-color="rgba(232,201,74,1)"/>
+          <stop offset="92%"  stop-color="rgba(212,175,55,0.8)"/>
+          <stop offset="100%" stop-color="rgba(212,175,55,0)"/>
+        </linearGradient>
+        <filter id="bh-bot-glow"><feGaussianBlur stdDeviation="1.5"/></filter>
+      </defs>
+      <rect width="860" height="2" fill="url(#bh-bot)" filter="url(#bh-bot-glow)" opacity="0.5"/>
+      <rect width="860" height="1" fill="url(#bh-bot)"/>
+    </svg>
+  </div>
+
+  <!-- ════════════════════════════════════
+       BORDURES VERTICALES SVG
+  ════════════════════════════════════ -->
+
+  <!-- Left -->
+  <div class="border-v border-v-left">
+    <svg viewBox="0 0 2 1700" preserveAspectRatio="none"
+         width="2" height="100%" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bv-left" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="rgba(212,175,55,0)"/>
+          <stop offset="6%"   stop-color="rgba(212,175,55,0.8)"/>
+          <stop offset="50%"  stop-color="rgba(232,201,74,1)"/>
+          <stop offset="94%"  stop-color="rgba(212,175,55,0.8)"/>
+          <stop offset="100%" stop-color="rgba(212,175,55,0)"/>
+        </linearGradient>
+        <filter id="bv-l-glow"><feGaussianBlur stdDeviation="1.5"/></filter>
+      </defs>
+      <rect width="2" height="1700" fill="url(#bv-left)" filter="url(#bv-l-glow)" opacity="0.5"/>
+      <rect width="1" height="1700" fill="url(#bv-left)"/>
+    </svg>
+  </div>
+
+  <!-- Right -->
+  <div class="border-v border-v-right">
+    <svg viewBox="0 0 2 1700" preserveAspectRatio="none"
+         width="2" height="100%" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bv-right" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="rgba(212,175,55,0)"/>
+          <stop offset="6%"   stop-color="rgba(212,175,55,0.8)"/>
+          <stop offset="50%"  stop-color="rgba(232,201,74,1)"/>
+          <stop offset="94%"  stop-color="rgba(212,175,55,0.8)"/>
+          <stop offset="100%" stop-color="rgba(212,175,55,0)"/>
+        </linearGradient>
+        <filter id="bv-r-glow"><feGaussianBlur stdDeviation="1.5"/></filter>
+      </defs>
+      <rect width="2" height="1700" fill="url(#bv-right)" filter="url(#bv-r-glow)" opacity="0.5"/>
+      <rect width="1" height="1700" fill="url(#bv-right)"/>
+    </svg>
+  </div>
+
+  <!-- ════════════════════════════════════
+       PARTICULES AMBIANTES
+  ════════════════════════════════════ -->
+  <div class="spark" style="width:3px;height:3px;left:16px; bottom:300px;  --dur:11s; --delay:0s;   --travel:-400px;"></div>
+  <div class="spark" style="width:2px;height:2px;left:16px; bottom:700px;  --dur:14s; --delay:3s;   --travel:-600px;"></div>
+  <div class="spark" style="width:2px;height:2px;left:16px; bottom:1100px; --dur:9s;  --delay:6s;   --travel:-350px;"></div>
+  <div class="spark" style="width:3px;height:3px;right:16px;bottom:500px;  --dur:12s; --delay:1.5s; --travel:-500px;"></div>
+  <div class="spark" style="width:2px;height:2px;right:16px;bottom:900px;  --dur:10s; --delay:4s;   --travel:-400px;"></div>
+  <div class="spark" style="width:2px;height:2px;right:16px;bottom:1300px; --dur:13s; --delay:7.5s; --travel:-550px;"></div>
+  <div class="spark" style="width:2px;height:2px;left:16px; bottom:1600px; --dur:8s;  --delay:2s;   --travel:-300px;"></div>
+  <div class="spark" style="width:2px;height:2px;right:16px;bottom:200px;  --dur:15s; --delay:9s;   --travel:-650px;"></div>
+
+</body>
+</html>
