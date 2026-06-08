@@ -30,9 +30,13 @@ function getNextRank(total) {
 
 app.use(express.static("public"));
 
+// Palier passeport configurable (défaut 10€ par langue)
+let passportThreshold = 10;
+
 io.on("connection", (socket) => {
   console.log("Client connecté");
   socket.emit("init", players);
+  socket.emit("passportThresholdUpdate", { threshold: passportThreshold });
 
   socket.on("purchase", (data) => {
     const { user, amount, lang } = data;
@@ -53,7 +57,7 @@ io.on("connection", (socket) => {
     player.total += amountNum;
     const oldStamp = player.passport[lang];
     player.langSpent[lang] += amountNum;
-    if (player.langSpent[lang] >= 10) player.passport[lang] = true;
+    if (player.langSpent[lang] >= passportThreshold) player.passport[lang] = true;
 
     const newStamp        = player.passport[lang];
     const stampUnlocked   = !oldStamp && newStamp;
@@ -108,6 +112,16 @@ io.on("connection", (socket) => {
   socket.on("questLaunch",  (data) => socket.broadcast.emit("questLaunch",  data));
   socket.on("questUpdate",  (data) => socket.broadcast.emit("questUpdate",  data));
   socket.on("questEnd",     (data) => socket.broadcast.emit("questEnd",     data));
+
+  // ── Config passeport
+  socket.on("setPassportThreshold", (data) => {
+    const val = parseInt(data.threshold);
+    if (val > 0) {
+      passportThreshold = val;
+      io.emit("passportThresholdUpdate", { threshold: passportThreshold });
+      console.log("Palier passeport:", passportThreshold + "€");
+    }
+  });
 
   // ── Volume : relay dashboard → overlay
   socket.on("setVolume", (data) => {

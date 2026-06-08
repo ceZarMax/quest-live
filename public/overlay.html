@@ -1191,7 +1191,7 @@ function showCard(html, duration, onDone) {
 function animPurchase(data, onDone) {
   const rank     = data.rank || { emoji:"🌱", name:"Explorateur" };
   const langSpent = data.langSpent[data.lang];
-  const pct       = Math.min(langSpent / 10 * 100, 100);
+  const pct       = Math.min(langSpent / passportThreshold * 100, 100);
 
   let extra = "";
   if (data.stampUnlocked) {
@@ -1208,7 +1208,7 @@ function animPurchase(data, onDone) {
         <div class="ev-progress-bar">
           <div class="ev-progress-fill" id="pfill" style="width:0%"></div>
         </div>
-        <div class="ev-progress-label">${langSpent}€ / 10€</div>
+        <div class="ev-progress-label">${langSpent}€ / ${passportThreshold}€</div>
       </div>
       <div style="font-size:20px;color:#aaa;">${rank.emoji} ${rank.name}</div>
     `;
@@ -1555,6 +1555,7 @@ socket.on("timerStop", () => {
 // ════════════════════════════════════════════
 
 const obsPlayers = {};
+let passportThreshold = 10; // reçu du serveur
 
 let sidebarVisible   = true;  // toggle affichage sidebar
 let sidebarShowAmounts = true; // toggle montants
@@ -1730,7 +1731,7 @@ function showPill(data) {
     icon.textContent = "💰";
     user.textContent = data.user;
     const langSpentVal = data.langSpent[data.lang];
-    sub.innerHTML = `${LANG_LABEL[data.lang]} · <strong>${langSpentVal}€ / 10€</strong> · ${rank.emoji} ${rank.name}`;
+    sub.innerHTML = `${LANG_LABEL[data.lang]} · <strong>${langSpentVal}€ / ${passportThreshold}€</strong> · ${rank.emoji} ${rank.name}`;
     amount.textContent = `+${data.amount}€`;
     const pct = Math.min((langSpentVal / 10) * 100, 100);
     setTimeout(() => { progress.style.width = pct + "%"; }, 100);
@@ -1808,6 +1809,10 @@ socket.on("questUpdate", (data) => {
 
 socket.on("questEnd", (data) => {
   hideQuestCard(data.success);
+});
+
+socket.on("passportThresholdUpdate", (data) => {
+  passportThreshold = data.threshold;
 });
 
 socket.on("sidebarConfig", (data) => {

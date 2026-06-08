@@ -78,6 +78,27 @@
         </div>
       </div>
       <div class="card timer-card">
+        <h2>🛂 Paliers Passeport</h2>
+        <p class="wheel-hint" style="margin-bottom:10px">Montant minimum par langue pour valider un tampon.</p>
+        <div class="timer-duration-row" style="margin-bottom:10px">
+          <label style="flex:1;font-size:13px">Palier par langue</label>
+          <input id="passport-threshold-input" type="number" min="1" max="500" value="10"
+                 style="width:70px;margin:0">
+          <span style="font-size:12px;color:#888">€</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button id="btn-passport-threshold" class="btn-timer-start" style="flex:1;font-size:13px;padding:8px">
+            ✅ Appliquer
+          </button>
+          <div id="passport-threshold-status" style="font-size:11px;color:#555;align-self:center;text-align:right;flex:1">
+            Actuel : <strong id="passport-threshold-current" style="color:#d4af37">10€</strong>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#333;line-height:1.5">
+          ⚠️ Ne s'applique qu'aux nouveaux achats. Les tampons déjà validés restent acquis.
+        </div>
+      </div>
+      <div class="card timer-card">
         <h2>⏱ Minuteur Langue</h2>
 
         <!-- Affichage timer -->
@@ -453,6 +474,7 @@ function setVolume(val) {
 // ════════════════════════════════════════════
 
 const socket = io();
+let passportThreshold = 10; // synchro serveur
 const players = {};
 
 const langNames = {
@@ -768,9 +790,9 @@ function showToast(data) {
       <div class="toast-sub">${langNames[data.lang]}</div>
       <div class="toast-progress">
         <div class="toast-progress-bar">
-          <div class="toast-progress-fill" style="width:${Math.min(langSpentVal/10*100,100)}%"></div>
+          <div class="toast-progress-fill" style="width:${Math.min(langSpentVal/passportThreshold*100,100)}%"></div>
         </div>
-        <div class="toast-progress-label">${langSpentVal}€ / 10€</div>
+        <div class="toast-progress-label">${langSpentVal}€ / ${passportThreshold}€</div>
       </div>
       <div class="toast-meta">🛂 ${data.passportCount}/4 &nbsp;|&nbsp; ${rank.emoji} ${rank.name}</div>
     `;
@@ -1749,6 +1771,26 @@ function updateSocialProgress() {
     setTimeout(() => completeQuest(true), 500);
   }
 }
+
+// ════════════════════════════════════════════
+//  CONFIG PASSEPORT
+// ════════════════════════════════════════════
+
+document.getElementById("btn-passport-threshold").onclick = () => {
+  const val = parseInt(document.getElementById("passport-threshold-input").value);
+  if (!val || val < 1) return;
+  socket.emit("setPassportThreshold", { threshold: val });
+  document.getElementById("btn-passport-threshold").textContent = "✅ Appliqué !";
+  setTimeout(() => {
+    document.getElementById("btn-passport-threshold").textContent = "✅ Appliquer";
+  }, 1500);
+};
+
+socket.on("passportThresholdUpdate", (data) => {
+  passportThreshold = data.threshold;
+  document.getElementById("passport-threshold-input").value  = data.threshold;
+  document.getElementById("passport-threshold-current").textContent = data.threshold + "€";
+});
 
 // ════════════════════════════════════════════
 //  INIT
