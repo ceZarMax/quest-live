@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Quest Live Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>⚔️ Quest Live Dashboard</h1>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('live')">🎮 Live</button>
+    <button class="tab" onclick="switchTab('wheel')">🎰 Roue</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ TAB LIVE ═══ -->
+<div id="tab-live" class="tab-content">
+  <div class="dashboard">
+    <div class="sidebar">
+      <div class="card">
+        <h2>Ajouter un achat</h2>
+        <input id="user" placeholder="Pseudo" autocomplete="off" list="players-list">
+        <datalist id="players-list"></datalist>
+        <input id="amount" type="number" placeholder="Montant (€)" min="1">
+        <select id="lang">
+          <option value="jp">🇯🇵 Japon</option>
+          <option value="cn">🇨🇳 Chine</option>
+          <option value="id">🇮🇩 Indonésie</option>
+          <option value="kr">🇰🇷 Corée</option>
+        </select>
+        <button id="send">💰 Ajouter achat</button>
+      </div>
+    </div>
+    <div class="content">
+      <div id="players"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ TAB ROUE ═══ -->
+<div id="tab-wheel" class="tab-content" style="display:none">
+  <div class="wheel-config-wrapper">
+    <div class="card wheel-config-card">
+      <h2>🎁 Récompenses de la roue</h2>
+      <p class="wheel-hint">Le % de chaque récompense est modifiable. Le total est normalisé automatiquement.</p>
+
+      <div id="rewards-list"></div>
+
+      <div class="wheel-add-row">
+        <input id="new-reward-name" placeholder="Nom de la récompense (ex: Black Bolt)">
+        <input id="new-reward-pct" type="number" placeholder="%" min="1" max="100" style="width:80px">
+        <button id="btn-add-reward" class="btn-small">+ Ajouter</button>
+      </div>
+
+      <div id="total-pct-display" class="total-pct"></div>
+
+      <div class="spin-duration-row">
+        <label for="spin-duration">⏱ Durée du spin</label>
+        <input id="spin-duration" type="number" min="1" max="30" value="5" style="width:70px; margin:0">
+        <span class="spin-duration-unit">secondes</span>
+      </div>
+    </div>
+
+    <div class="card wheel-preview-card">
+      <h2>🎰 Aperçu roue</h2>
+      <div class="wheel-preview-container">
+        <canvas id="wheel-preview" width="340" height="340"></canvas>
+        <div class="wheel-needle">▼</div>
+      </div>
+      <button id="btn-test-spin" class="btn-test">🎲 Tester un spin (aperçu)</button>
+      <div id="test-result" class="test-result"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ MODAL ROUE ═══ -->
+<div id="wheel-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div class="modal-player-name" id="modal-player-name"></div>
+    <div class="modal-subtitle">🏆 Passeport Complété — Roue de la chance</div>
+    <div class="wheel-spin-container">
+      <canvas id="wheel-spin" width="400" height="400"></canvas>
+      <div class="wheel-needle-modal">▼</div>
+    </div>
+    <div id="spin-result" class="spin-result"></div>
+    <div class="modal-actions">
+      <button id="btn-spin" class="btn-spin">🎰 Tourner la roue</button>
+      <button id="btn-close-modal" class="btn-close-modal">✕ Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast popup centré -->
+<div id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+
+// ════════════════════════════════════════════
+//  ÉTAT GLOBAL
+// ════════════════════════════════════════════
+
+const socket = io();
+const players = {};
+
+const langNames = {
+  jp: "🇯🇵 Japon",
+  cn: "🇨🇳 Chine",
+  id: "🇮🇩 Indonésie",
+  kr: "🇰🇷 Corée",
+};
+
+// Récompenses par défaut
+let rewards = [
+  { name: "Black Bolt",             pct: 20 },
+  { name: "White Flare",            pct: 20 },
+  { name: "Glory of Team Rocket",   pct: 20 },
+  { name: "CS6A",                   pct: 20 },
+  { name: "SV11",                   pct: 20 },
+];
+
+// Joueur en cours pour la roue
+let wheelTargetUser = null;
+
+// Animation roue
+let spinAnimId = null;
+let isSpinning = false;
+let isSpinningPreview = false;
+
+// Couleurs roue (alternance dorée/navy)
+const WHEEL_COLORS = [
+  "#d4af37", "#0d1b2a",
+  "#c9a84c", "#152035",
+  "#b8960f", "#1a2a40",
+  "#e8c94a", "#0a1628",
+];
+
+// ════════════════════════════════════════════
+//  TABS
+// ════════════════════════════════════════════
+
+function switchTab(tab) {
+  document.querySelectorAll(".tab-content").forEach(el => el.style.display = "none");
+  document.querySelectorAll(".tab").forEach(el => el.classList.remove("active"));
+  document.getElementById("tab-" + tab).style.display = "";
+  event.target.classList.add("active");
+  if (tab === "wheel") {
+    renderRewardsList();
+    drawWheel("wheel-preview", rewards, 0);
+  }
+}
+
+// ════════════════════════════════════════════
+//  SOCKET
+// ════════════════════════════════════════════
+
+socket.on("init", (serverPlayers) => {
+  Object.assign(players, serverPlayers);
+  renderPlayers();
+  updateDatalist();
+});
+
+socket.on("purchase", (data) => {
+  players[data.user] = data;
+  renderPlayers();
+  updateDatalist();
+  showToast(data);
+});
+
+socket.on("resetPassport", (data) => {
+  if (players[data.user]) Object.assign(players[data.user], data);
+  renderPlayers();
+});
+
+// ════════════════════════════════════════════
+//  ACHAT
+// ════════════════════════════════════════════
+
+document.getElementById("send").onclick = () => {
+  const user   = document.getElementById("user").value.trim().toUpperCase();
+  const amount = document.getElementById("amount").value;
+  const lang   = document.getElementById("lang").value;
+  if (!user || !amount || Number(amount) <= 0) return;
+  socket.emit("purchase", { user, amount, lang });
+  document.getElementById("amount").value = "";
+  document.getElementById("user").focus();
+};
+
+document.getElementById("amount").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") document.getElementById("send").click();
+});
+
+function updateDatalist() {
+  const list = document.getElementById("players-list");
+  list.innerHTML = Object.keys(players).map(p => `<option value="${p}">`).join("");
+}
+
+// ════════════════════════════════════════════
+//  JOUEURS
+// ════════════════════════════════════════════
+
+function renderPlayers() {
+  const container = document.getElementById("players");
+  container.innerHTML = "";
+
+  Object.values(players)
+    .sort((a, b) => (b.total || 0) - (a.total || 0))
+    .forEach(player => {
+      const rank           = player.rank || { emoji: "🌱", name: "Explorateur" };
+      const nextRank       = player.nextRank;
+      const total          = player.total || 0;
+      const passportCount  = player.passportCount || 0;
+      const passport       = player.passport  || { jp: false, cn: false, id: false, kr: false };
+      const langSpent      = player.langSpent || { jp: 0, cn: 0, id: 0, kr: 0 };
+      const passportCompleted = player.passportCompleted || false;
+
+      const card = document.createElement("div");
+      card.className = "player-card" + (passportCompleted ? " passport-done" : "");
+
+      const nextRankHtml = nextRank
+        ? `<div class="next-rank">➡️ Encore ${nextRank.threshold - total}€ pour ${nextRank.name}</div>`
+        : `<div class="next-rank">👑 Rang maximum</div>`;
+
+      // Bouton roue uniquement si passeport complet
+      const wheelBtn = passportCompleted
+        ? `<button class="btn-wheel" onclick="openWheel('${player.user}')">🎰 Tourner la roue</button>`
+        : "";
+
+      const resetBtn = passportCompleted
+        ? `<button class="btn-reset" onclick="resetPassport('${player.user}')">🔄 Réinitialiser Passeport</button>`
+        : "";
+
+      card.innerHTML = `
+        <div class="player-name">${player.user}</div>
+        <div class="player-rank">${rank.emoji} ${rank.name}</div>
+        <div class="total">${total}€</div>
+        ${nextRankHtml}
+        <div class="passport-progress">🛂 ${passportCount}/4</div>
+        <div class="passport">
+          <span class="${passport.jp ? 'stamp-ok':'stamp-no'}">JP ${passport.jp?'✅':'❌'} (${langSpent.jp}€)</span>
+          <span class="${passport.cn ? 'stamp-ok':'stamp-no'}">CN ${passport.cn?'✅':'❌'} (${langSpent.cn}€)</span>
+          <span class="${passport.id ? 'stamp-ok':'stamp-no'}">ID ${passport.id?'✅':'❌'} (${langSpent.id}€)</span>
+          <span class="${passport.kr ? 'stamp-ok':'stamp-no'}">KR ${passport.kr?'✅':'❌'} (${langSpent.kr}€)</span>
+        </div>
+        ${passportCompleted ? '<div class="passport-complete">🏆 PASSEPORT COMPLET</div>' : ""}
+        ${wheelBtn}
+        ${resetBtn}
+      `;
+
+      container.appendChild(card);
+    });
+}
+
+function resetPassport(user) {
+  if (!confirm(`Réinitialiser le passeport de ${user} ?`)) return;
+  socket.emit("resetPassport", { user });
+}
+
+// ════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════
+
+let toastTimer = null;
+
+function showToast(data) {
+  const toast = document.getElementById("toast");
+  const rank  = data.rank || { emoji: "🌱", name: "Explorateur" };
+  let content = "";
+
+  if (data.passportCompleted) {
+    content = `
+      <div class="toast-title">🏆 PASSEPORT COMPLÉTÉ</div>
+      <div class="toast-user">${data.user}</div>
+      <div class="toast-stamps">🇯🇵✅ 🇨🇳✅ 🇮🇩✅ 🇰🇷✅</div>
+      <div class="toast-sub">🎰 Roue disponible</div>
+    `;
+  } else if (data.rankUp) {
+    content = `
+      <div class="toast-title">${rank.emoji} NOUVEAU RANG</div>
+      <div class="toast-user">${data.user}</div>
+      <div class="toast-sub">${rank.name}</div>
+    `;
+  } else if (data.stampUnlocked) {
+    content = `
+      <div class="toast-title">💰 ACHAT AJOUTÉ</div>
+      <div class="toast-user">${data.user} +${data.amount}€</div>
+      <div class="toast-stamp-unlock">✅ TAMPON DÉBLOQUÉ</div>
+      <div class="toast-sub">${langNames[data.lang]}</div>
+      <div class="toast-meta">🛂 ${data.passportCount}/4 &nbsp;|&nbsp; ${rank.emoji} ${rank.name}</div>
+    `;
+  } else {
+    const langSpentVal = data.langSpent[data.lang];
+    content = `
+      <div class="toast-title">💰 ACHAT AJOUTÉ</div>
+      <div class="toast-user">${data.user} +${data.amount}€</div>
+      <div class="toast-sub">${langNames[data.lang]}</div>
+      <div class="toast-progress">
+        <div class="toast-progress-bar">
+          <div class="toast-progress-fill" style="width:${Math.min(langSpentVal/10*100,100)}%"></div>
+        </div>
+        <div class="toast-progress-label">${langSpentVal}€ / 10€</div>
+      </div>
+      <div class="toast-meta">🛂 ${data.passportCount}/4 &nbsp;|&nbsp; ${rank.emoji} ${rank.name}</div>
+    `;
+  }
+
+  toast.innerHTML = content;
+  toast.style.opacity = "1";
+  toast.style.transform = "translate(-50%, -50%) scale(1)";
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translate(-50%, -50%) scale(0.95)";
+  }, 3500);
+}
+
+// ════════════════════════════════════════════
+//  GESTION DES RÉCOMPENSES
+// ════════════════════════════════════════════
+
+function getNormalizedRewards() {
+  const total = rewards.reduce((s, r) => s + r.pct, 0);
+  if (total === 0) return rewards.map(r => ({ ...r, norm: 0 }));
+  return rewards.map(r => ({ ...r, norm: r.pct / total }));
+}
+
+function renderRewardsList() {
+  const list = document.getElementById("rewards-list");
+  const total = rewards.reduce((s, r) => s + r.pct, 0);
+
+  list.innerHTML = rewards.map((r, i) => `
+    <div class="reward-row">
+      <div class="reward-color-dot" style="background:${WHEEL_COLORS[i % WHEEL_COLORS.length]}"></div>
+      <input class="reward-name-input"
+             value="${r.name}"
+             onchange="updateReward(${i}, 'name', this.value)">
+      <input class="reward-pct-input"
+             type="number" min="1" max="100"
+             value="${r.pct}"
+             onchange="updateReward(${i}, 'pct', Number(this.value))">
+      <span class="reward-pct-real">${total > 0 ? Math.round(r.pct / total * 100) : 0}%</span>
+      <button class="btn-del-reward" onclick="deleteReward(${i})">✕</button>
+    </div>
+  `).join("");
+
+  document.getElementById("total-pct-display").textContent =
+    `Total brut : ${total} pts — Répartition normalisée automatiquement`;
+
+  drawWheel("wheel-preview", getNormalizedRewards(), 0);
+}
+
+function updateReward(index, field, value) {
+  if (field === "pct") value = Math.max(1, value);
+  rewards[index][field] = value;
+  renderRewardsList();
+}
+
+function deleteReward(index) {
+  if (rewards.length <= 2) { alert("Minimum 2 récompenses."); return; }
+  rewards.splice(index, 1);
+  renderRewardsList();
+}
+
+document.getElementById("btn-add-reward").onclick = () => {
+  const name = document.getElementById("new-reward-name").value.trim();
+  const pct  = Number(document.getElementById("new-reward-pct").value) || 10;
+  if (!name) return;
+  rewards.push({ name, pct });
+  document.getElementById("new-reward-name").value = "";
+  document.getElementById("new-reward-pct").value  = "";
+  renderRewardsList();
+};
+
+// ════════════════════════════════════════════
+//  DESSIN DE LA ROUE (Canvas)
+// ════════════════════════════════════════════
+
+function drawWheel(canvasId, normalizedRewards, rotationAngle) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx    = canvas.getContext("2d");
+  const cx     = canvas.width  / 2;
+  const cy     = canvas.height / 2;
+  const radius = cx - 10;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Fond circulaire
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius + 4, 0, Math.PI * 2);
+  ctx.fillStyle = "#0d1b2a";
+  ctx.fill();
+  ctx.strokeStyle = "#d4af37";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  if (!normalizedRewards || normalizedRewards.length === 0) return;
+
+  let startAngle = rotationAngle;
+
+  normalizedRewards.forEach((r, i) => {
+    const slice = (r.norm || r.pct) * Math.PI * 2;
+    const endAngle = startAngle + slice;
+
+    // Segment
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = WHEEL_COLORS[i % WHEEL_COLORS.length];
+    ctx.fill();
+    ctx.strokeStyle = "#08111f";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Texte
+    const midAngle  = startAngle + slice / 2;
+    const textRadius = radius * 0.65;
+    const tx = cx + Math.cos(midAngle) * textRadius;
+    const ty = cy + Math.sin(midAngle) * textRadius;
+
+    ctx.save();
+    ctx.translate(tx, ty);
+    ctx.rotate(midAngle + Math.PI / 2);
+    ctx.fillStyle = WHEEL_COLORS[i % WHEEL_COLORS.length] === "#d4af37" ||
+                    WHEEL_COLORS[i % WHEEL_COLORS.length] === "#c9a84c" ||
+                    WHEEL_COLORS[i % WHEEL_COLORS.length] === "#b8960f" ||
+                    WHEEL_COLORS[i % WHEEL_COLORS.length] === "#e8c94a"
+                    ? "#08111f" : "#d4af37";
+
+    const label = r.name.length > 12 ? r.name.slice(0, 11) + "…" : r.name;
+    ctx.font = "bold 11px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, 0, 0);
+    ctx.restore();
+
+    startAngle = endAngle;
+  });
+
+  // Centre doré
+  ctx.beginPath();
+  ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+  ctx.fillStyle = "#d4af37";
+  ctx.fill();
+  ctx.strokeStyle = "#08111f";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+// ════════════════════════════════════════════
+//  MODAL ROUE + SPIN
+// ════════════════════════════════════════════
+
+function openWheel(user) {
+  wheelTargetUser = user;
+  document.getElementById("modal-player-name").textContent = "🏆 " + user;
+  document.getElementById("spin-result").innerHTML = "";
+  document.getElementById("btn-spin").disabled = false;
+  document.getElementById("btn-spin").style.opacity = "1";
+  document.getElementById("wheel-modal").style.display = "flex";
+  drawWheel("wheel-spin", getNormalizedRewards(), 0);
+}
+
+document.getElementById("btn-close-modal").onclick = () => {
+  if (isSpinning) return;
+  document.getElementById("wheel-modal").style.display = "none";
+  wheelTargetUser = null;
+};
+
+document.getElementById("btn-spin").onclick = () => {
+  if (isSpinning) return;
+  spinWheel("wheel-spin", "spin-result", () => {
+    isSpinning = false;
+    document.getElementById("btn-spin").disabled = false;
+    document.getElementById("btn-spin").style.opacity = "1";
+  }, (v) => { isSpinning = v; });
+};
+
+function spinWheel(canvasId, resultId, onDone, setSpinning) {
+  setSpinning(true);
+
+  // Désactive le bouton lié si c'est le modal
+  if (canvasId === "wheel-spin") {
+    document.getElementById("btn-spin").disabled = true;
+    document.getElementById("btn-spin").style.opacity = "0.5";
+  }
+  if (canvasId === "wheel-preview") {
+    const btn = document.getElementById("btn-test-spin");
+    btn.disabled = true;
+    btn.style.opacity = "0.5";
+    btn.textContent = "⏳ Spin en cours...";
+  }
+
+  if (resultId) document.getElementById(resultId).innerHTML = "";
+
+  const normalized = getNormalizedRewards();
+  const durationInput = document.getElementById("spin-duration");
+  const duration = (parseFloat(durationInput ? durationInput.value : 5) || 5) * 1000;
+
+  // Tirage pondéré
+  const rand = Math.random();
+  let cumul = 0, winIndex = 0;
+  for (let i = 0; i < normalized.length; i++) {
+    cumul += normalized[i].norm;
+    if (rand <= cumul) { winIndex = i; break; }
+  }
+
+  // Calcul angle cible : le centre du segment gagnant doit se retrouver sous la flèche (haut = -PI/2)
+  let angleStart = 0;
+  for (let i = 0; i < winIndex; i++) angleStart += normalized[i].norm * Math.PI * 2;
+  const sliceAngle = normalized[winIndex].norm * Math.PI * 2;
+  const winCenter  = angleStart + sliceAngle / 2;
+
+  // Décalage aléatoire à l'intérieur du segment (évite que ça s'arrête toujours pile au centre)
+  const jitter = (Math.random() - 0.5) * sliceAngle * 0.6;
+  const extraSpins = (5 + Math.floor(Math.random() * 4)) * Math.PI * 2;
+  const targetAngle = -Math.PI / 2 - (winCenter + jitter) + extraSpins;
+
+  const startTime = performance.now();
+
+  function easeOut(t) { return 1 - Math.pow(1 - t, 4); }
+
+  function animate(now) {
+    const elapsed  = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const currentAngle = easeOut(progress) * targetAngle;
+
+    drawWheel(canvasId, normalized, currentAngle);
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      // Fin du spin
+      if (canvasId === "wheel-preview") {
+        const btn = document.getElementById("btn-test-spin");
+        btn.disabled = false;
+        btn.style.opacity = "1";
+        btn.textContent = "🎲 Tester un spin (aperçu)";
+      }
+      if (resultId) showSpinResult(normalized[winIndex], winIndex, resultId);
+      onDone();
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+function showSpinResult(reward, index, resultId) {
+  const color   = WHEEL_COLORS[index % WHEEL_COLORS.length];
+  const isLight = ["#d4af37","#c9a84c","#b8960f","#e8c94a"].includes(color);
+  document.getElementById(resultId).innerHTML = `
+    <div class="result-box" style="background:${color}; color:${isLight ? '#08111f' : '#d4af37'}">
+      🎁 ${reward.name}
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════
+//  TEST SPIN (depuis onglet Roue)
+// ════════════════════════════════════════════
+
+document.getElementById("btn-test-spin").onclick = () => {
+  if (isSpinningPreview) return;
+  spinWheel("wheel-preview", "test-result", () => {
+    isSpinningPreview = false;
+  }, (v) => { isSpinningPreview = v; });
+};
+
+// ════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════
+
+renderRewardsList();
+
+</script>
+</body>
+</html>

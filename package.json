@@ -1,0 +1,19 @@
+{
+  "name": "quest-live",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "electron": "^42.3.3",
+    "electron-builder": "^26.15.2",
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  }
+}

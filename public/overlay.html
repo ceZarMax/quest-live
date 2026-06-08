@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Overlay</title>
+</head>
+<body>
+
+<h1 id="event"></h1>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+
+const socket = io();
+
+socket.on("purchase", (data) => {
+
+document.getElementById("event").innerHTML = `
+
+<h1>${data.user}</h1>
+
+<h2>+${data.amount}€</h2>
+
+<h3>Total : ${data.total}€</h3>
+
+<p>
+🇯🇵 ${data.passport.jp ? '✅' : '❌'}
+🇨🇳 ${data.passport.cn ? '✅' : '❌'}
+🇮🇩 ${data.passport.id ? '✅' : '❌'}
+🇰🇷 ${data.passport.kr ? '✅' : '❌'}
+</p>
+
+`;
+
+});
+
+</script>
+
+</body>
+</html>
