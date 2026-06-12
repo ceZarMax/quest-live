@@ -36,8 +36,14 @@
         </select>
         <button id="send">💰 Ajouter achat</button>
 
-        <div class="volume-row">
-          <span class="volume-icon">🔊</span>
+        <div class="volume-row" style="margin-top:10px;padding-top:10px;border-top:1px solid #1e2e45">
+          <span style="font-size:13px;color:#888;flex:1">🤖 eBay Auto-Sync</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-ebay-sync" onchange="toggleEbaySync(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+          <span id="ebay-sync-label" style="font-size:11px;color:#333;margin-left:8px;width:40px">OFF</span>
+        </div>
           <input type="range" id="vol-slider" min="0" max="1" step="0.05" value="0.8"
                  oninput="setVolume(this.value)">
           <span id="vol-label" class="volume-label">80%</span>
@@ -171,6 +177,8 @@
         <canvas id="wheel-preview" width="340" height="340"></canvas>
         <div class="wheel-needle">▼</div>
       </div>
+      <!-- Légende -->
+      <div id="wheel-legend" style="margin-top:12px;display:flex;flex-direction:column;gap:5px"></div>
       <button id="btn-test-spin" class="btn-test">🎲 Tester un spin (aperçu)</button>
       <div id="test-result" class="test-result"></div>
     </div>
@@ -178,6 +186,17 @@
 
   <!-- ── Sous-onglet Rangs ── -->
   <div id="wheeltab-rank" class="wheel-config-wrapper" style="display:none">
+    <div class="card wheel-config-card">
+      <h2>⚙️ Paliers de Rang</h2>
+      <p class="wheel-hint" style="margin-bottom:12px">Montant total dépensé pour atteindre chaque rang.</p>
+      <div id="rank-thresholds-list">
+        <!-- Généré par JS -->
+      </div>
+      <button id="btn-save-rank-thresholds" class="btn-timer-start" style="width:100%;margin-top:8px;font-size:13px;padding:8px">
+        ✅ Appliquer les paliers
+      </button>
+    </div>
+
     <div class="card wheel-config-card">
       <h2>🎁 Récompenses par rang</h2>
       <p class="wheel-hint">Configurez les récompenses pour chaque palier. Le bouton apparaît sur la carte joueur après un rankUp.</p>
@@ -211,6 +230,7 @@
         <canvas id="wheel-preview-rank" width="340" height="340"></canvas>
         <div class="wheel-needle">▼</div>
       </div>
+      <div id="wheel-legend-rank" style="margin-top:12px;display:flex;flex-direction:column;gap:5px"></div>
       <button id="btn-test-spin-rank" class="btn-test">🎲 Tester un spin (aperçu)</button>
       <div id="test-result-rank" class="test-result"></div>
     </div>
@@ -252,6 +272,7 @@
         <canvas id="wheel-preview-topbuyers" width="340" height="340"></canvas>
         <div class="wheel-needle">▼</div>
       </div>
+      <div id="wheel-legend-topbuyers" style="margin-top:12px;display:flex;flex-direction:column;gap:5px"></div>
       <button id="btn-test-spin-topbuyers" class="btn-test">🎲 Tester un spin (aperçu)</button>
       <div id="test-result-topbuyers" class="test-result"></div>
 
@@ -506,17 +527,17 @@ const RANK_LABELS = {
 const RANK_THRESHOLD_MAP = {
   50:  "baroudeur",
   100: "gardien",
-  150: "champion",
-  250: "seigneur",
-  350: "roi",
+  200: "champion",
+  300: "seigneur",
+  500: "roi",
 };
 
 let rankRewards = {
-  baroudeur: [{ name: "Booster aléatoire", pct: 50 }, { name: "Carte promo", pct: 50 }],
-  gardien:   [{ name: "Booster rare",      pct: 50 }, { name: "Carte SR",    pct: 50 }],
-  champion:  [{ name: "Booster premium",   pct: 50 }, { name: "Carte UR",    pct: 50 }],
-  seigneur:  [{ name: "Display 1/2",       pct: 50 }, { name: "SAR exclusif",pct: 50 }],
-  roi:       [{ name: "Display complet",   pct: 50 }, { name: "Carte Gold",  pct: 50 }],
+  baroudeur: [{ name: "Booster aléatoire Indo",       pct: 50 }, { name: "Booster aléatoire Chinois",       pct: 50 }],
+  gardien:   [{ name: "Booster aléatoire Coréen",     pct: 50 }, { name: "Booster aléatoire Japonais",      pct: 50 }],
+  champion:  [{ name: "Carte Promo aléatoire Indo",   pct: 50 }, { name: "Carte aléatoire Japonaise",       pct: 50 }],
+  seigneur:  [{ name: "Binder aléatoire Sanseking",   pct: 50 }, { name: "Lot d'accessoires Sanseking",     pct: 50 }],
+  roi:       [{ name: "Display aléatoire",            pct: 50 }, { name: "S.A.R aléatoire Japonaise",       pct: 50 }],
 };
 
 // Récompenses Give Top Acheteurs
@@ -561,6 +582,7 @@ function switchTab(tab) {
   document.getElementById("tab-" + tab).style.display = "";
   event.target.classList.add("active");
   if (tab === "wheel") {
+    renderRankThresholdsList();
     if (currentWheelTab === "passport") {
       renderRewardsList();
       drawWheel("wheel-preview", getNormalizedRewards(rewards), 0);
@@ -612,6 +634,7 @@ socket.on("init", (serverPlayers) => {
   Object.assign(players, serverPlayers);
   renderPlayers();
   updateDatalist();
+  renderRankThresholdsList();
 });
 
 socket.on("purchase", (data) => {
@@ -918,6 +941,22 @@ document.getElementById("btn-add-reward").onclick = () => {
 //  DESSIN DE LA ROUE (Canvas)
 // ════════════════════════════════════════════
 
+function renderWheelLegend(legendId, normalizedRewards) {
+  const container = document.getElementById(legendId);
+  if (!container || !normalizedRewards) return;
+  container.innerHTML = normalizedRewards.map((r, i) => {
+    const color = WHEEL_COLORS[i % WHEEL_COLORS.length];
+    const pct   = Math.round((r.norm || r.pct) * 100);
+    return `
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+        <div style="width:12px;height:12px;border-radius:3px;background:${color};flex-shrink:0;border:1px solid rgba(255,255,255,0.1)"></div>
+        <span style="color:#aaa;flex-shrink:0;min-width:32px">${pct}%</span>
+        <span style="color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}</span>
+      </div>
+    `;
+  }).join("");
+}
+
 function drawWheel(canvasId, normalizedRewards, rotationAngle) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
@@ -942,7 +981,7 @@ function drawWheel(canvasId, normalizedRewards, rotationAngle) {
   let startAngle = rotationAngle;
 
   normalizedRewards.forEach((r, i) => {
-    const slice = (r.norm || r.pct) * Math.PI * 2;
+    const slice    = (r.norm || r.pct) * Math.PI * 2;
     const endAngle = startAngle + slice;
 
     // Segment
@@ -956,28 +995,60 @@ function drawWheel(canvasId, normalizedRewards, rotationAngle) {
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // Texte
-    const midAngle  = startAngle + slice / 2;
-    const textRadius = radius * 0.65;
+    // ── Texte avec retour à la ligne et taille adaptive
+    const midAngle   = startAngle + slice / 2;
+    const textRadius = radius * 0.62;
     const tx = cx + Math.cos(midAngle) * textRadius;
     const ty = cy + Math.sin(midAngle) * textRadius;
+
+    // Largeur disponible selon l'angle du slice
+    const arcLen    = slice * textRadius;  // longueur d'arc approximative
+    const maxWidth  = Math.max(arcLen * 0.85, 20);
+
+    // Taille de police adaptive
+    const fontSize  = slice > 0.5 ? 12 : slice > 0.25 ? 10 : 8;
+
+    const isLight = ["#d4af37","#c9a84c","#b8960f","#e8c94a"]
+                    .includes(WHEEL_COLORS[i % WHEEL_COLORS.length]);
 
     ctx.save();
     ctx.translate(tx, ty);
     ctx.rotate(midAngle + Math.PI / 2);
-    ctx.fillStyle = WHEEL_COLORS[i % WHEEL_COLORS.length] === "#d4af37" ||
-                    WHEEL_COLORS[i % WHEEL_COLORS.length] === "#c9a84c" ||
-                    WHEEL_COLORS[i % WHEEL_COLORS.length] === "#b8960f" ||
-                    WHEEL_COLORS[i % WHEEL_COLORS.length] === "#e8c94a"
-                    ? "#08111f" : "#d4af37";
-
-    const label = r.name.length > 12 ? r.name.slice(0, 11) + "…" : r.name;
-    ctx.font = "bold 11px Arial";
-    ctx.textAlign = "center";
+    ctx.fillStyle   = isLight ? "#08111f" : "#d4af37";
+    ctx.font        = `bold ${fontSize}px Arial`;
+    ctx.textAlign   = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(label, 0, 0);
-    ctx.restore();
 
+    // Découpe le nom en mots et les distribue sur plusieurs lignes
+    const words     = r.name.split(" ");
+    const lines     = [];
+    let current     = "";
+
+    for (const word of words) {
+      const test = current ? current + " " + word : word;
+      if (ctx.measureText(test).width <= maxWidth || !current) {
+        current = test;
+      } else {
+        lines.push(current);
+        current = word;
+      }
+    }
+    if (current) lines.push(current);
+
+    // Max 3 lignes, tronque si nécessaire
+    const maxLines  = 3;
+    const display   = lines.slice(0, maxLines);
+    if (lines.length > maxLines) display[maxLines - 1] += "…";
+
+    const lineHeight = fontSize + 2;
+    const totalH     = display.length * lineHeight;
+    const startY     = -totalH / 2 + lineHeight / 2;
+
+    display.forEach((line, li) => {
+      ctx.fillText(line, 0, startY + li * lineHeight);
+    });
+
+    ctx.restore();
     startAngle = endAngle;
   });
 
@@ -989,6 +1060,16 @@ function drawWheel(canvasId, normalizedRewards, rotationAngle) {
   ctx.strokeStyle = "#08111f";
   ctx.lineWidth = 2;
   ctx.stroke();
+
+  // Légende externe
+  const legendMap = {
+    "wheel-preview":          "wheel-legend",
+    "wheel-preview-rank":     "wheel-legend-rank",
+    "wheel-preview-topbuyers":"wheel-legend-topbuyers",
+  };
+  if (legendMap[canvasId]) {
+    renderWheelLegend(legendMap[canvasId], normalizedRewards);
+  }
 }
 
 // ════════════════════════════════════════════
@@ -1771,6 +1852,62 @@ function updateSocialProgress() {
     setTimeout(() => completeQuest(true), 500);
   }
 }
+
+function toggleEbaySync(active) {
+  socket.emit(active ? "ebayStartSync" : "ebayStopSync");
+}
+
+socket.on("ebaySyncStatus", (data) => {
+  const cb    = document.getElementById("toggle-ebay-sync");
+  const label = document.getElementById("ebay-sync-label");
+  if (cb) cb.checked = data.active;
+  if (label) {
+    label.textContent = data.active ? "ON" : "OFF";
+    label.style.color = data.active ? "#4caf50" : "#333";
+  }
+});
+
+// ════════════════════════════════════════════
+//  PALIERS DE RANG CONFIGURABLES
+// ════════════════════════════════════════════
+
+const RANK_NAMES = ["Explorateur", "Baroudeur", "Gardien", "Champion", "Seigneur", "Roi"];
+const RANK_EMOJIS = ["🌱", "🗺️", "🛡️", "⚔️", "👑", "🏆"];
+let rankThresholds = [0, 50, 100, 200, 300, 500];
+
+function renderRankThresholdsList() {
+  const container = document.getElementById("rank-thresholds-list");
+  if (!container) return;
+  container.innerHTML = rankThresholds.map((t, i) => `
+    <div class="timer-duration-row" style="margin-bottom:6px">
+      <span style="font-size:13px;flex:1">${RANK_EMOJIS[i]} ${RANK_NAMES[i]}</span>
+      ${i === 0
+        ? `<span style="font-size:12px;color:#555;margin-right:8px">0€ (fixe)</span>`
+        : `<input type="number" min="1" max="9999" value="${t}"
+             id="rank-threshold-${i}"
+             style="width:70px;margin:0"> <span style="font-size:12px;color:#888">€</span>`
+      }
+    </div>
+  `).join("");
+}
+
+document.getElementById("btn-save-rank-thresholds").onclick = () => {
+  const thresholds = rankThresholds.map((t, i) => {
+    if (i === 0) return 0;
+    const input = document.getElementById(`rank-threshold-${i}`);
+    return input ? parseInt(input.value) || t : t;
+  });
+  socket.emit("setRankThresholds", { thresholds });
+  document.getElementById("btn-save-rank-thresholds").textContent = "✅ Appliqué !";
+  setTimeout(() => {
+    document.getElementById("btn-save-rank-thresholds").textContent = "✅ Appliquer les paliers";
+  }, 1500);
+};
+
+socket.on("rankThresholdsUpdate", (data) => {
+  rankThresholds = data.thresholds;
+  renderRankThresholdsList();
+});
 
 // ════════════════════════════════════════════
 //  CONFIG PASSEPORT
