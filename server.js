@@ -359,6 +359,10 @@ io.on("connection", (socket) => {
     }
   });
 
+  // ── Soundboard
+  socket.on("soundboard",     (data) => socket.broadcast.emit("soundboard", data));
+  socket.on("soundboardStop", (data) => socket.broadcast.emit("soundboardStop", data));
+
   // ── Volume : relay dashboard → overlay
   socket.on("setVolume", (data) => {
     socket.broadcast.emit("setVolume", data);

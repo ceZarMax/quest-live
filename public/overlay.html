@@ -717,6 +717,83 @@
     }
 
     /* ═══════════════════════════════════════════
+       SOUNDBOARD GIF
+    ═══════════════════════════════════════════ */
+    .sb-gif-wrap {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      z-index: 50;
+      pointer-events: none;
+      opacity: 0;
+      transition: none;
+    }
+
+    .sb-gif-wrap.visible {
+      animation: sb-bounce-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .sb-gif-wrap.exit {
+      animation: sb-fade-out 0.6s ease-in forwards;
+    }
+
+    @keyframes sb-bounce-in {
+      0%   { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+      60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+      80%  { transform: translate(-50%, -50%) scale(0.96); }
+      100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    @keyframes sb-fade-out {
+      0%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+    }
+
+    .sb-gif-wrap img {
+      max-width: 700px;
+      max-height: 700px;
+      border-radius: 16px;
+      filter: drop-shadow(0 0 40px rgba(0,0,0,0.8));
+    }
+
+    .sb-username {
+      margin-top: 16px;
+      text-align: center;
+      font-family: 'PolenoBold', 'Arial Black', serif;
+      font-size: 52px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #e8c94a;
+      text-shadow:
+        0 0 10px rgba(232,201,74,0.9),
+        0 0 25px rgba(212,175,55,0.7),
+        0 0 50px rgba(212,175,55,0.5),
+        0 0 90px rgba(212,175,55,0.3);
+      animation: sb-name-glow 1.2s ease-in-out infinite alternate;
+    }
+
+    @keyframes sb-name-glow {
+      0%   {
+        text-shadow:
+          0 0 8px  rgba(232,201,74,0.8),
+          0 0 20px rgba(212,175,55,0.6),
+          0 0 40px rgba(212,175,55,0.4),
+          0 0 80px rgba(212,175,55,0.2);
+        letter-spacing: 4px;
+      }
+      100% {
+        text-shadow:
+          0 0 14px rgba(232,201,74,1),
+          0 0 35px rgba(212,175,55,0.9),
+          0 0 65px rgba(212,175,55,0.6),
+          0 0 110px rgba(212,175,55,0.4);
+        letter-spacing: 6px;
+      }
+    }
+
+    /* ═══════════════════════════════════════════
        CARTE QUÊTE LIVE
     ═══════════════════════════════════════════ */
     .quest-card {
@@ -978,6 +1055,12 @@
     <div class="pill-progress-wrap">
       <div class="pill-progress-bar" id="pill-progress-bar" style="width:0%"></div>
     </div>
+  </div>
+
+  <!-- Soundboard GIF -->
+  <div class="sb-gif-wrap" id="sb-gif-wrap">
+    <img id="sb-gif-img" src="" alt="">
+    <div class="sb-username" id="sb-username"></div>
   </div>
 
   <!-- Carte Quête Live -->
@@ -1813,6 +1896,85 @@ socket.on("questEnd", (data) => {
 
 socket.on("passportThresholdUpdate", (data) => {
   passportThreshold = data.threshold;
+});
+
+// ════════════════════════════════════════════
+//  SOUNDBOARD
+// ════════════════════════════════════════════
+
+let sbAudio   = null;
+let sbGifTimer = null;
+
+function showSbGif(gifFile, duration, username, phrase) {
+  const wrap     = document.getElementById("sb-gif-wrap");
+  const img      = document.getElementById("sb-gif-img");
+  const nameEl   = document.getElementById("sb-username");
+
+  if (sbGifTimer) { clearTimeout(sbGifTimer); sbGifTimer = null; }
+
+  wrap.classList.remove("visible", "exit");
+  img.src = "/gifs/" + gifFile;
+
+  // Username + phrase sous le gif
+  if (username) {
+    const phraseHtml = phrase
+      ? `<br><span style="font-size:28px;letter-spacing:2px;opacity:0.8">${phrase}</span>`
+      : "";
+    nameEl.innerHTML = `${username}${phraseHtml}`;
+    nameEl.style.display = "";
+  } else {
+    nameEl.innerHTML = "";
+    nameEl.style.display = "none";
+  }
+
+  void wrap.offsetWidth;
+  wrap.classList.add("visible");
+
+  sbGifTimer = setTimeout(() => {
+    wrap.classList.remove("visible");
+    wrap.classList.add("exit");
+    setTimeout(() => {
+      wrap.classList.remove("exit");
+      img.src = "";
+      nameEl.textContent = "";
+    }, 600);
+  }, duration);
+}
+
+function hideSbGif() {
+  if (sbGifTimer) { clearTimeout(sbGifTimer); sbGifTimer = null; }
+  const wrap = document.getElementById("sb-gif-wrap");
+  wrap.classList.remove("visible");
+  wrap.classList.add("exit");
+  setTimeout(() => {
+    wrap.classList.remove("exit");
+    document.getElementById("sb-gif-img").src = "";
+  }, 600);
+  if (sbAudio) { sbAudio.pause(); sbAudio = null; }
+}
+
+socket.on("soundboard", (data) => {
+  // Joue le son sur l'overlay aussi (optionnel — commenté si tu veux que le son soit seulement côté dashboard)
+  // sbAudio = new Audio("/sounds/" + data.sound);
+  // sbAudio.volume = 0.8;
+  // sbAudio.play().catch(() => {});
+
+  if (!data.gif) return; // Pas de gif → rien à afficher
+
+  // Calcule la durée du son pour le fade-out
+  // On utilise un Audio temporaire pour lire la duration
+  const tempAudio = new Audio("/sounds/" + data.sound);
+  tempAudio.addEventListener("loadedmetadata", () => {
+    const duration = tempAudio.duration * 1000 || 4000;
+    showSbGif(data.gif, duration, data.lastUser || null, data.phrase || null);
+  });
+  tempAudio.addEventListener("error", () => {
+    showSbGif(data.gif, 4000, data.lastUser || null, data.phrase || null);
+  });
+});
+
+socket.on("soundboardStop", () => {
+  hideSbGif();
 });
 
 socket.on("sidebarConfig", (data) => {
