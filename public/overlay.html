@@ -117,15 +117,6 @@
       }
     }
 
-    .banner-ig {
-      font-size: 22px;
-      font-weight: 900;
-      color: #d4af37;
-      text-align: right;
-      text-shadow: 0 0 12px rgba(212,175,55,0.4);
-      transition: opacity 0.35s ease, transform 0.35s ease;
-    }
-
     /* Ligne 2 : titre live centré */
     .banner-title {
       font-size: 22px;
@@ -933,7 +924,10 @@
     /* ═══════════════════════════════════════════
        CARTE QUÊTE LIVE
     ═══════════════════════════════════════════ */
-    .quest-card {
+    /* ═══════════════════════════════════════════
+       CARTE QUÊTE LIVE
+    ═══════════════════════════════════════════ */
+.quest-card {
       position: absolute;
       top: 158px;
       left: 0;
@@ -1158,7 +1152,7 @@
   <div class="banner">
     <div class="banner-top">
       <div class="banner-logo"><span class="banner-quest">QUEST</span><span>CORNER</span></div>
-      <div class="banner-ig" id="banner-ig">@quest.corner</div>
+      <div class="banner-ig" id="banner-ig"><img src="/images/instagram.png" style="width:22px;height:22px;vertical-align:middle;border-radius:5px;margin-right:6px"> <span class="ig-handle">@quest.corner</span></div>
     </div>
     <div class="banner-title" id="banner-live-title">
       <span class="banner-dot"></span>Pokémon Japonais &amp; Coréen · Live du Samedi
@@ -1229,6 +1223,7 @@
   <!-- Particules canvas -->
   <canvas class="particles-canvas" id="particles-canvas"></canvas>
 
+  
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -1245,25 +1240,25 @@ function rotateIgHandle() {
   const el = document.getElementById("banner-ig");
   if (!el) return;
 
-  // Fade out
-  el.style.opacity = "0";
-  el.style.transform = "translateY(-8px)";
-  el.style.transition = "opacity 0.35s ease, transform 0.35s ease";
+  // Slide out vers le haut
+  el.style.opacity   = "0";
+  el.style.transform = "translateY(-10px)";
+  el.style.transition = "opacity 0.3s ease, transform 0.3s ease";
 
   setTimeout(() => {
     igIndex = (igIndex + 1) % IG_HANDLES.length;
-    el.innerHTML = `<span class="ig-handle">${IG_HANDLES[igIndex]}</span>`;
-    el.style.transform = "translateY(8px)";
+    el.innerHTML = `<img src="/images/instagram.png" style="width:22px;height:22px;vertical-align:middle;border-radius:5px;margin-right:6px"> <span class="ig-handle">${IG_HANDLES[igIndex]}</span>`;    // Prépare depuis le bas
+    el.style.transform  = "translateY(10px)";
     el.style.transition = "none";
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        el.style.opacity = "1";
+        el.style.opacity   = "1";
         el.style.transform = "translateY(0)";
-        el.style.transition = "opacity 0.35s ease, transform 0.35s ease";
+        el.style.transition = "opacity 0.3s ease, transform 0.3s ease";
       });
     });
-  }, 380);
+  }, 320);
 }
 
 // Toutes les 5 secondes
@@ -1462,7 +1457,8 @@ function animPurchase(data, onDone) {
     `;
     spawnParticles("stamp");
   } else {
-    extra = `
+    if (passportActive) {
+      extra = `
       <div class="ev-lang">${LANG_NAMES[data.lang]}</div>
       <div class="ev-progress-wrap">
         <div class="ev-progress-bar">
@@ -1472,6 +1468,23 @@ function animPurchase(data, onDone) {
       </div>
       <div style="font-size:20px;color:#aaa;">${rank.emoji} ${rank.name}</div>
     `;
+    } else if (tiersActive && tierIndividual > 0) {
+      const playerTotal  = data.total || 0;
+      const nextGive     = Math.ceil(Math.max(playerTotal + 0.01, 0.01) / tierIndividual) * tierIndividual;
+      const remaining    = nextGive - playerTotal;
+      const pctGive      = Math.min((playerTotal / nextGive) * 100, 100);
+      extra = `
+      <div class="ev-lang">${rank.emoji} ${rank.name}</div>
+      <div class="ev-progress-wrap">
+        <div class="ev-progress-bar">
+          <div class="ev-progress-fill" id="pfill" style="width:0%" data-pct="${pctGive}"></div>
+        </div>
+        <div class="ev-progress-label">Plus que ${remaining}€ pour un give</div>
+      </div>
+    `;
+    } else {
+      extra = `<div style="font-size:20px;color:#aaa;">${rank.emoji} ${rank.name}</div>`;
+    }
     spawnParticles("purchase");
   }
 
@@ -1832,7 +1845,7 @@ const obsPlayers = {};
 let passportThreshold = 10; // reçu du serveur
 
 let sidebarVisible   = true;  // toggle affichage sidebar
-let sidebarShowAmounts = true; // toggle montants
+let sidebarShowAmounts = false; // toggle montants
 
 const RANK_EMOJIS = {
   0: "🌱", 50: "🗺️", 100: "🛡️", 150: "⚔️", 250: "👑", 350: "🏆"
@@ -1880,10 +1893,20 @@ function renderSidebar() {
   list.innerHTML = sorted.map((p, i) => {
     const total    = p.total || 0;
     const next     = getNextPalier(total);
-    const totalDisplay = sidebarShowAmounts ? `${total}€` : `···€`;
-    const palierDisplay = next
-      ? `<span class="sidebar-total-sub">/${next}€</span>`
-      : `<span style="font-size:14px;color:#d4af37;">MAX</span>`;
+    const totalDisplay  = sidebarShowAmounts ? `${total}€` : `···€`;
+
+    let palierDisplay = "";
+    if (passportActive) {
+      // Mode passeport : affiche prochain palier passeport
+      palierDisplay = next
+        ? `<span class="sidebar-total-sub">/${next}€</span>`
+        : `<span style="font-size:14px;color:#d4af37;">MAX</span>`;
+    } else if (tiersActive && tierIndividual > 0) {
+      // Mode give individuel : affiche ce qu'il reste à atteindre
+      const nextGive  = Math.ceil(Math.max(total + 0.01, 0.01) / tierIndividual) * tierIndividual;
+      const remaining = nextGive - total;
+      palierDisplay = `<span class="sidebar-total-sub">-${remaining}€</span>`;
+    }
 
     return `
       <div class="sidebar-player rank-${i+1}">
@@ -2010,10 +2033,22 @@ function showPill(data) {
     icon.textContent = "💰";
     user.textContent = data.user;
     const langSpentVal = data.langSpent[data.lang];
-    sub.innerHTML = `${LANG_LABEL[data.lang]} · <strong>${langSpentVal}€ / ${passportThreshold}€</strong> · ${rank.emoji} ${rank.name}`;
+    const playerTotal  = data.total || 0;
+    if (passportActive) {
+      sub.innerHTML = `${LANG_LABEL[data.lang]} · <strong>${langSpentVal}€ / ${passportThreshold}€</strong> · ${rank.emoji} ${rank.name}`;
+      const pct = Math.min((langSpentVal / passportThreshold) * 100, 100);
+      setTimeout(() => { progress.style.width = pct + "%"; }, 100);
+    } else if (tiersActive && tierIndividual > 0) {
+      const nextGive   = Math.ceil(Math.max(playerTotal + 0.01, 0.01) / tierIndividual) * tierIndividual;
+      const remaining  = nextGive - playerTotal;
+      const pct        = Math.min((playerTotal / nextGive) * 100, 100);
+      sub.innerHTML    = `${rank.emoji} ${rank.name} · <strong>Plus que ${remaining}€ pour un give</strong>`;
+      setTimeout(() => { progress.style.width = pct + "%"; }, 100);
+    } else {
+      sub.innerHTML = `${rank.emoji} ${rank.name} · <strong>+${data.amount}€</strong>`;
+      setTimeout(() => { progress.style.width = "0%"; }, 100);
+    }
     amount.textContent = `+${data.amount}€`;
-    const pct = Math.min((langSpentVal / 10) * 100, 100);
-    setTimeout(() => { progress.style.width = pct + "%"; }, 100);
   }
 
   pill.classList.remove("exit");
@@ -2092,6 +2127,21 @@ socket.on("questEnd", (data) => {
 
 socket.on("passportThresholdUpdate", (data) => {
   passportThreshold = data.threshold;
+});
+
+let passportActive = false;
+let tiersActive    = false;
+let tierIndividual = 30;
+
+socket.on("passportActiveUpdate", (data) => {
+  passportActive = data.active;
+  renderSidebar();
+});
+
+socket.on("tiersConfigUpdate", (data) => {
+  tiersActive    = !!data.active;
+  tierIndividual = data.individual || 30;
+  renderSidebar();
 });
 
 // ════════════════════════════════════════════

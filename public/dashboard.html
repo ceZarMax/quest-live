@@ -102,7 +102,7 @@
         <div class="timer-duration-row" style="margin-top:6px">
           <label style="flex:1;font-size:12px">Afficher les montants</label>
           <label class="toggle-switch">
-            <input type="checkbox" id="toggle-amounts" checked onchange="toggleAmounts(this.checked)">
+            <input type="checkbox" id="toggle-amounts" onchange="toggleAmounts(this.checked)">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -122,10 +122,10 @@
         <div class="timer-duration-row" style="margin-bottom:10px">
           <label style="flex:1;font-size:13px;font-weight:700">Système Passeport</label>
           <label class="toggle-switch">
-            <input type="checkbox" id="toggle-passport" checked onchange="togglePassport(this.checked)">
+            <input type="checkbox" id="toggle-passport" onchange="togglePassport(this.checked)">
             <span class="toggle-slider"></span>
           </label>
-          <span id="passport-active-label" style="font-size:11px;color:#4caf50;margin-left:8px;width:32px">ON</span>
+          <span id="passport-active-label" style="font-size:11px;color:#e74c3c;margin-left:8px;width:32px">OFF</span>
         </div>
 
         <p class="wheel-hint" style="margin-bottom:10px">Montant minimum par langue pour valider un tampon.</p>
@@ -173,8 +173,64 @@
           🎰 Lancer la roue sur l'overlay
         </button>
       </div>
+
+            <!-- Paliers d'achats -->
+      <div class="card timer-card" style="margin-top:10px">
+        <h2>🎁 Paliers d'Achats</h2>
+
+        <div class="timer-duration-row" style="margin-bottom:12px">
+          <label style="flex:1;font-size:13px;font-weight:700">Système actif</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-tiers" onchange="toggleTiers(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+          <span id="tiers-active-label" style="font-size:11px;color:#e74c3c;margin-left:8px;width:32px">OFF</span>
+        </div>
+
+        <!-- Palier individuel -->
+        <div style="padding:10px;background:#0a1628;border-radius:8px;margin-bottom:10px;border:1px solid #1e2e45">
+          <div style="font-size:12px;color:#d4af37;font-weight:700;margin-bottom:8px">👤 Palier individuel</div>
+          <p style="font-size:11px;color:#555;margin-bottom:8px">Notif quand un acheteur atteint ce montant.</p>
+          <div class="timer-duration-row">
+            <label style="font-size:12px;color:#888;flex:1">Palier</label>
+            <input id="tier-individual" type="number" min="1" value="30" style="width:65px;margin:0">
+            <span style="font-size:12px;color:#888">€</span>
+          </div>
+          <!-- Notifs individuelles -->
+          <div id="individual-notifs" style="margin-top:8px;display:flex;flex-direction:column;gap:4px"></div>
+        </div>
+
+        <!-- Palier collectif -->
+        <div style="padding:10px;background:#0a1628;border-radius:8px;margin-bottom:10px;border:1px solid #1e2e45">
+          <div style="font-size:12px;color:#d4af37;font-weight:700;margin-bottom:8px">👥 Objectif collectif</div>
+          <div class="timer-duration-row" style="margin-bottom:8px">
+            <label style="font-size:12px;color:#888;flex:1">Palier</label>
+            <input id="tier-collective" type="number" min="1" value="500" style="width:65px;margin:0">
+            <span style="font-size:12px;color:#888">€</span>
+          </div>
+          <div style="font-size:12px;color:#aaa;text-align:center;padding:8px;background:#0d1b2a;border-radius:6px">
+            Total live : <strong id="collective-total-display" style="color:#d4af37;font-size:15px">0€</strong>
+            &nbsp;/&nbsp;
+            <span id="collective-target-display" style="color:#555">500€</span>
+          </div>
+        </div>
+
+        <div id="collective-notif" style="display:none;padding:12px 14px;background:linear-gradient(135deg,#1a3a1a,#0d2a0d);border:2px solid #4caf50;border-radius:10px;margin-bottom:10px;text-align:center">
+          <div style="font-size:22px;margin-bottom:4px">🎁</div>
+          <div style="font-size:14px;font-weight:700;color:#4caf50">Palier atteint !</div>
+          <div style="font-size:11px;color:#aaa;margin-top:2px">Tu peux lancer un give collectif</div>
+        </div>
+
+        <button onclick="applyTiers()" class="btn-timer-start" style="width:100%;font-size:13px;padding:8px">
+          ✅ Appliquer
+        </button>
+        <button onclick="giveCollective()" style="width:100%;margin-top:6px;padding:8px;font-size:13px;background:#1a2a40;border:1px solid #d4af37;color:#d4af37;border-radius:8px;cursor:pointer">
+          🎁 Give effectué — Réinitialiser
+        </button>
+      </div>
+
       <div class="card timer-card">
-        <h2>⏱ Minuteur Langue</h2>
+        <h2>⏱ Minuteur Langue</h2>e</h2>
 
         <!-- Affichage timer -->
         <div class="timer-display" id="timer-display">--:--</div>
@@ -793,6 +849,7 @@ socket.on("purchase", (data) => {
   players[data.user] = data;
   lastPurchaseUser = data.user;
   renderPlayersList();
+  checkIndividualTier(data);
   // Si rankUp, mémoriser le rang atteint pour afficher le bouton roue (même si passeport complété en même temps)
   if (data.rankUp && data.rank) {
     const rankKey = RANK_THRESHOLD_MAP[data.rank.threshold];
@@ -895,11 +952,21 @@ function renderPlayers() {
         ? `<div class="passport-completions">🎖️ ${passportCompletions} passeport${passportCompletions > 1 ? 's' : ''} complété${passportCompletions > 1 ? 's' : ''}</div>`
         : "";
 
+      // Affichage selon mode actif
+      const giveProgressHtml = (() => {
+        if (!tiersActive || !tierIndividual) return "";
+        const nextGive   = Math.ceil(Math.max(total + 0.01, 0.01) / tierIndividual) * tierIndividual;
+        const remaining  = nextGive - total;
+        return `<div class="next-rank" style="color:#d4af37">🎁 Plus que ${remaining}€ pour un give</div>`;
+      })();
+
       card.innerHTML = `
         <div class="player-name">${player.user}</div>
         <div class="player-rank">${rank.emoji} ${rank.name}</div>
         <div class="total">${total}€</div>
         ${nextRankHtml}
+        ${tiersActive ? giveProgressHtml : ""}
+        ${!tiersActive ? `
         <div class="passport-progress">🛂 ${passportCount}/4</div>
         <div class="passport">
           <span class="${passport.jp ? 'stamp-ok':'stamp-no'}">JP ${passport.jp?'✅':'❌'} (${langSpent.jp}€)</span>
@@ -909,6 +976,7 @@ function renderPlayers() {
         </div>
         ${completionsBadge}
         ${passportCompleted ? '<div class="passport-complete">🏆 PASSEPORT COMPLET</div>' : ""}
+        ` : ""}
         ${rankWheelBtn}
         ${wheelBtn}
         ${resetBtn}
@@ -2154,6 +2222,100 @@ function updateManualWheelSelect() {
   sel.innerHTML = '<option value="">— Sélectionner un joueur —</option>' +
     sorted.map(n => `<option value="${n}" ${n === current ? 'selected' : ''}>${n}</option>`).join("");
 }
+
+// ════════════════════════════════════════════
+//  PALIERS D'ACHATS
+// ════════════════════════════════════════════
+
+let tiersActive          = false;
+let tierIndividual       = 30;
+let tierCollective       = 500;
+let collectiveTotal      = 0;
+const individualNotified = {};
+
+function toggleTiers(active) {
+  tiersActive = active;
+  const label = document.getElementById('tiers-active-label');
+  label.textContent = active ? 'ON' : 'OFF';
+  label.style.color = active ? '#4caf50' : '#e74c3c';
+  socket.emit('setTiersConfig', { active: tiersActive, individual: tierIndividual, collective: tierCollective });
+}
+
+function applyTiers() {
+  tierIndividual = parseInt(document.getElementById('tier-individual').value) || 30;
+  tierCollective = parseInt(document.getElementById('tier-collective').value) || 500;
+  socket.emit('setTiersConfig', { active: tiersActive, individual: tierIndividual, collective: tierCollective });
+  const targetEl = document.getElementById('collective-target-display');
+  if (targetEl) targetEl.textContent = tierCollective + '€';
+  const btn = document.querySelector('[onclick="applyTiers()"]');
+  btn.textContent = '✅ Appliqué !';
+  setTimeout(() => { btn.textContent = '✅ Appliquer'; }, 1500);
+}
+
+function addIndividualNotif(user, total) {
+  const container = document.getElementById('individual-notifs');
+  if (!container) return;
+  const el = document.createElement('div');
+  el.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#0d2a1a;border:1px solid #4caf50;border-radius:6px;font-size:12px';
+  el.innerHTML = '<span>🎁 <strong style="color:#fff">' + user + '</strong> — give dispo (' + total + '€ atteint)</span>'
+    + '<button onclick="this.parentElement.remove()" style="background:none;border:none;color:#555;cursor:pointer;font-size:14px;padding:0 0 0 8px">✕</button>';
+  container.prepend(el);
+}
+
+function checkIndividualTier(data) {
+  if (!tiersActive || !tierIndividual) return;
+  const total        = data.total || 0;
+  const user         = data.user;
+  const tiersReached = Math.floor(total / tierIndividual);
+  const tiersAlready = individualNotified[user] || 0;
+  if (tiersReached > tiersAlready) {
+    individualNotified[user] = tiersReached;
+    addIndividualNotif(user, tiersReached * tierIndividual);
+  }
+}
+
+function giveCollective() {
+  if (!confirm('Give effectué ? Le compteur sera remis à zéro.')) return;
+  socket.emit('collectiveGive', {});
+  collectiveTotal = 0;
+  const notif = document.getElementById('collective-notif');
+  if (notif) { notif.style.display = 'none'; notif._wasReached = false; }
+  updateCollectiveDisplay();
+}
+
+function updateCollectiveDisplay() {
+  const target   = tierCollective > 0 ? tierCollective : 500;
+  const totalEl  = document.getElementById('collective-total-display');
+  const targetEl = document.getElementById('collective-target-display');
+  const notif    = document.getElementById('collective-notif');
+  if (totalEl)  totalEl.textContent  = collectiveTotal + '€';
+  if (targetEl) targetEl.textContent = target + '€';
+  if (notif) {
+    const reached = collectiveTotal >= target;
+    notif.style.display = reached ? 'block' : 'none';
+    notif._wasReached   = reached;
+  }
+}
+
+socket.on('collectiveTotalUpdate', (data) => {
+  collectiveTotal = data.total || 0;
+  if (data.target) tierCollective = data.target;
+  updateCollectiveDisplay();
+});
+
+socket.on('tiersConfigUpdate', (data) => {
+  tiersActive    = data.active;
+  tierIndividual = data.individual;
+  tierCollective = data.collective;
+  const toggle = document.getElementById('toggle-tiers');
+  const indEl  = document.getElementById('tier-individual');
+  const colEl  = document.getElementById('tier-collective');
+  if (toggle) toggle.checked   = tiersActive;
+  if (indEl)  indEl.value      = tierIndividual;
+  if (colEl)  colEl.value      = tierCollective;
+  const label = document.getElementById('tiers-active-label');
+  if (label) { label.textContent = tiersActive ? 'ON' : 'OFF'; label.style.color = tiersActive ? '#4caf50' : '#e74c3c'; }
+});
 
 // ════════════════════════════════════════════
 //  TITRE LIVE

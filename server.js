@@ -229,6 +229,7 @@ app.post("/ebay-purchase", (req, res) => {
   const result = processPurchase(user.toUpperCase(), Number(amount), detectedLang);
 
   io.emit("purchase", result);
+
   console.log(`🛒 [Extension] ${user} +${amount}€ [${detectedLang}] — ${title || ""}`);
 
   res.json({ ok: true, user: result.user, amount: result.amount, lang: detectedLang });
@@ -236,7 +237,13 @@ app.post("/ebay-purchase", (req, res) => {
 
 // Palier passeport configurable (défaut 10€ par langue)
 let passportThreshold = 10;
-let passportActive    = true; // peut être désactivé depuis le dashboard
+let passportActive    = false;
+
+// Paliers d'achats
+let tiersActive     = false;
+let tierIndividual  = 30;
+let tierCollective  = 500;
+let collectiveTotal = 0; // peut être désactivé depuis le dashboard
 
 // ── Logique achat (partagée entre socket manuel et eBay auto)
 function processPurchase(user, amount, lang) {
@@ -267,6 +274,13 @@ function processPurchase(user, amount, lang) {
   const rankUp            = newRank.threshold > oldRank.threshold;
   const nextRank          = getNextRank(player.total);
 
+  // Mise à jour total collectif (pour tous les chemins d'achat)
+  if (tiersActive) {
+    collectiveTotal += amountNum;
+    const pct = tierCollective > 0 ? Math.min(Math.round(collectiveTotal / tierCollective * 100), 100) : 0;
+    io.emit("collectiveTotalUpdate", { total: collectiveTotal, pct, target: tierCollective });
+  }
+
   return {
     user, amount: amountNum, lang,
     total: player.total,
@@ -282,6 +296,12 @@ io.on("connection", (socket) => {
   console.log("Client connecté");
   socket.emit("init", players);
   socket.emit("passportThresholdUpdate", { threshold: passportThreshold });
+  socket.emit("passportActiveUpdate", { active: passportActive });
+  socket.emit("tiersConfigUpdate", { active: tiersActive, individual: tierIndividual, collective: tierCollective });
+  if (tiersActive) {
+    const pct = tierCollective > 0 ? Math.min(Math.round(collectiveTotal / tierCollective * 100), 100) : 0;
+    socket.emit("collectiveTotalUpdate", { total: collectiveTotal, pct, target: tierCollective });
+  }
 
   socket.on("resetPassport", (data) => {
     const { user } = data;
@@ -355,6 +375,26 @@ io.on("connection", (socket) => {
     passportActive = !!data.active;
     io.emit("passportActiveUpdate", { active: passportActive });
     console.log("Passeport:", passportActive ? "activé" : "désactivé");
+  });
+
+  socket.on("setTiersConfig", (data) => {
+    tiersActive    = !!data.active;
+    tierIndividual = parseInt(data.individual) || 30;
+    tierCollective = parseInt(data.collective) || 500;
+    const pct = tierCollective > 0 ? Math.min(Math.round(collectiveTotal / tierCollective * 100), 100) : 0;
+    io.emit("tiersConfigUpdate", { active: tiersActive, individual: tierIndividual, collective: tierCollective });
+    io.emit("collectiveTotalUpdate", { total: collectiveTotal, pct, target: tierCollective });
+    console.log("Paliers d'achats:", tiersActive ? "activés" : "désactivés", `ind:${tierIndividual}€ col:${tierCollective}€`);
+  });
+
+  socket.on("collectiveGive", () => {
+    collectiveTotal = 0;
+    io.emit("collectiveTotalUpdate", { total: 0, pct: 0, target: tierCollective });
+    console.log("Give collectif validé — compteur remis à zéro");
+  });
+
+  socket.on("setCollectiveGiveText", (data) => {
+    io.emit("collectiveGiveText", { text: data.text || "" });
   });
 
   socket.on("setPassportThreshold", (data) => {
