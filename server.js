@@ -236,6 +236,7 @@ app.post("/ebay-purchase", (req, res) => {
 
 // Palier passeport configurable (défaut 10€ par langue)
 let passportThreshold = 10;
+let passportActive    = true; // peut être désactivé depuis le dashboard
 
 // ── Logique achat (partagée entre socket manuel et eBay auto)
 function processPurchase(user, amount, lang) {
@@ -256,7 +257,7 @@ function processPurchase(user, amount, lang) {
   player.total += amountNum;
   const oldStamp = player.passport[lang];
   player.langSpent[lang] += amountNum;
-  if (player.langSpent[lang] >= passportThreshold) player.passport[lang] = true;
+  if (passportActive && player.langSpent[lang] >= passportThreshold) player.passport[lang] = true;
 
   const newStamp          = player.passport[lang];
   const stampUnlocked     = !oldStamp && newStamp;
@@ -350,6 +351,12 @@ io.on("connection", (socket) => {
     const { user, amount, lang } = data;
     io.emit("purchase", processPurchase(user, amount, lang));
   });
+  socket.on("setPassportActive", (data) => {
+    passportActive = !!data.active;
+    io.emit("passportActiveUpdate", { active: passportActive });
+    console.log("Passeport:", passportActive ? "activé" : "désactivé");
+  });
+
   socket.on("setPassportThreshold", (data) => {
     const val = parseInt(data.threshold);
     if (val > 0) {
@@ -358,6 +365,10 @@ io.on("connection", (socket) => {
       console.log("Palier passeport:", passportThreshold + "€");
     }
   });
+
+  // ── Titre live
+  socket.on("setLiveTitle",  (data) => io.emit("setLiveTitle",  data));
+  socket.on("setLiveTicker", (data) => io.emit("setLiveTicker", data));
 
   // ── Soundboard
   socket.on("soundboard",     (data) => socket.broadcast.emit("soundboard", data));

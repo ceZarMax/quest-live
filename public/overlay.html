@@ -24,12 +24,14 @@
       font-family: 'Arial Black', Arial, sans-serif;
     }
 
-    /* Zone utile : 65% du haut = 1248px */
+    /* Zone safe eBay — centré automatiquement */
     .stage {
       position: absolute;
-      top: 0; left: 0;
-      width: 1080px;
-      height: 1248px;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 820px;
+      height: 1840px;
       overflow: hidden;
     }
 
@@ -39,45 +41,123 @@
     .banner {
       position: absolute;
       top: 0; left: 0; right: 0;
-      height: 90px;
-      background: linear-gradient(90deg, #0a1628ee, #0d1b2add, #0a1628ee);
-      border-bottom: 2px solid #d4af37;
+      height: 130px;
+      background: linear-gradient(90deg, #08111fff, #0d1b2aff, #08111fff);
+      border: 2px solid #d4af37;
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0 32px;
+      z-index: 10;
+      overflow: hidden;
+    }
+
+    .banner-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 40px;
-      z-index: 10;
+      width: 100%;
+      margin-bottom: 6px;
     }
 
-    .banner-logo { font-family: 'PolenoBold', 'Arial Black', sans-serif;
-      font-size: 32px;
+    /* ═══════════════════════════════════════════
+       BANNIÈRE FIXE HAUT
+    ═══════════════════════════════════════════ */
+    .banner {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 150px;
+      background: linear-gradient(180deg, #08111fff 0%, #0d1b2aff 100%);
+      border: 2px solid #d4af37;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: space-between;
+      padding: 12px 24px 10px;
+      z-index: 10;
+      overflow: hidden;
+    }
+
+    /* Ligne 1 : logo gauche + IG droite */
+    .banner-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .banner-logo {
+      font-family: 'PolenoBold', 'Arial Black', sans-serif;
+      font-size: 38px;
       font-weight: 900;
       color: #d4af37;
       letter-spacing: 2px;
-      text-shadow: 0 0 20px rgba(212,175,55,0.6);
+      line-height: 1;
     }
 
     .banner-logo span { color: white; font-weight: 400; }
 
-    .banner-right {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 2px;
-    }
-
-    .banner-tag {
-      font-size: 18px;
+    .banner-quest {
+      display: inline-block;
       color: #d4af37;
-      font-weight: 700;
-      letter-spacing: 1px;
+      animation: quest-pulse 2.5s ease-in-out infinite;
     }
 
-    .banner-sub {
-      font-size: 14px;
-      color: #aaaaaa;
-      font-weight: 400;
-      letter-spacing: 0.5px;
+    @keyframes quest-pulse {
+      0%, 100% {
+        text-shadow: 0 0 10px rgba(212,175,55,0.6), 0 0 25px rgba(212,175,55,0.3);
+        color: #d4af37;
+      }
+      50% {
+        text-shadow: 0 0 20px rgba(232,201,74,1), 0 0 45px rgba(212,175,55,0.8), 0 0 80px rgba(212,175,55,0.4);
+        color: #f0d060;
+      }
+    }
+
+    .banner-ig {
+      font-size: 22px;
+      font-weight: 900;
+      color: #d4af37;
+      text-align: right;
+      text-shadow: 0 0 12px rgba(212,175,55,0.4);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    /* Ligne 2 : titre live centré */
+    .banner-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+      text-align: center;
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      opacity: 0.85;
+    }
+
+    /* Ligne 3 : ticker */
+    .banner-ticker-wrap {
+      width: 100%;
+      overflow: hidden;
+      height: 20px;
+    }
+
+    .banner-ticker {
+      display: inline-block;
+      white-space: nowrap;
+      font-size: 16px;
+      color: #555;
+      animation: ticker-scroll 30s linear infinite;
+      padding-left: 100%;
+    }
+
+    @keyframes ticker-scroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
     }
 
     .banner-dot {
@@ -85,13 +165,74 @@
       width: 10px; height: 10px;
       background: #e74c3c;
       border-radius: 50%;
-      margin-right: 8px;
+      box-shadow: 0 0 8px rgba(231,76,60,0.8);
       animation: blink 1.4s ease-in-out infinite;
+      margin-right: 6px;
+      vertical-align: middle;
     }
 
     @keyframes blink {
       0%, 100% { opacity: 1; }
       50%       { opacity: 0.2; }
+    }
+
+    .banner-live {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .banner-dot {
+      display: inline-block;
+      width: 12px; height: 12px;
+      background: #e74c3c;
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(231,76,60,0.8);
+      animation: blink 1.4s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.2; }
+    }
+
+    /* Ligne instagram animée */
+    .banner-ig {
+      font-size: 28px;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: 1px;
+      text-align: center;
+      min-height: 36px;
+    }
+
+    .banner-ig .ig-handle {
+      color: #d4af37;
+      text-shadow: 0 0 12px rgba(212,175,55,0.5);
+    }
+
+    /* Ticker règles */
+    .banner-ticker-wrap {
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+      height: 28px;
+      margin-top: 2px;
+    }
+
+    .banner-ticker {
+      display: inline-block;
+      white-space: nowrap;
+      font-size: 20px;
+      color: #888;
+      animation: ticker-scroll 28s linear infinite;
+      padding-left: 100%;
+    }
+
+    @keyframes ticker-scroll {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
     }
 
     /* ═══════════════════════════════════════════
@@ -365,7 +506,7 @@
     ═══════════════════════════════════════════ */
     .timer-bar {
       position: absolute;
-      top: 90px;
+      top: 158px;
       left: 0; right: 0;
       height: 64px;
       background: linear-gradient(90deg, #08111fee, #0d1b2aee, #08111fee);
@@ -426,7 +567,7 @@
     /* Progress bar fine sous le bandeau */
     .timer-progress-line {
       position: absolute;
-      top: 154px;
+      top: 222px;
       left: 0; right: 0;
       height: 3px;
       background: rgba(212,175,55,0.1);
@@ -506,20 +647,19 @@
     .lc-next-label { font-size: 13px; color: #555; letter-spacing: 1px; }
 
     /* ═══════════════════════════════════════════
-       SIDEBAR FIXE DROITE
+       SIDEBAR CLASSEMENT — côté droit
     ═══════════════════════════════════════════ */
     .sidebar-obs {
       position: absolute;
-      top: 157px;
+      top: 158px;
       right: 0;
-      width: 200px;
-      bottom: 0;
+      width: 220px;
       display: flex;
       flex-direction: column;
-      gap: 0;
+      gap: 4px;
       pointer-events: none;
       opacity: 0;
-      transform: translateX(20px);
+      transform: translateX(10px);
       transition: opacity 0.5s ease, transform 0.5s ease;
       z-index: 6;
     }
@@ -530,51 +670,56 @@
     }
 
     .sidebar-title {
-      font-size: 11px;
+      font-size: 13px;
       font-weight: 700;
       letter-spacing: 2px;
       color: #d4af37;
       opacity: 0.6;
-      padding: 10px 14px 6px;
+      padding: 6px 12px 4px;
       text-transform: uppercase;
     }
 
     .sidebar-player {
       display: flex;
-      flex-direction: column;
-      padding: 8px 14px;
-      border-left: 2px solid rgba(212,175,55,0.15);
-      margin-bottom: 2px;
-      background: linear-gradient(90deg, rgba(13,27,42,0.6), rgba(13,27,42,0.3));
-      transition: border-color 0.3s;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: linear-gradient(90deg, rgba(8,17,31,0.95), rgba(13,27,42,0.9));
+      border: 1px solid rgba(212,175,55,0.15);
+      border-right: none;
+      border-radius: 10px 0 0 10px;
     }
 
-    .sidebar-player.rank-1 { border-left-color: #d4af37; }
-    .sidebar-player.rank-2 { border-left-color: #aaa; }
-    .sidebar-player.rank-3 { border-left-color: #cd7f32; }
+    .sidebar-player.rank-1 {
+      border-color: #d4af37;
+      border-right: none;
+      box-shadow: 0 0 14px rgba(212,175,55,0.15);
+    }
+    .sidebar-player.rank-2 { border-color: rgba(170,170,170,0.3); border-right: none; }
+    .sidebar-player.rank-3 { border-color: rgba(205,127,50,0.3);  border-right: none; }
 
     .sidebar-player-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 6px;
-      margin-bottom: 2px;
+      width: 100%;
     }
 
     .sidebar-rank-num {
-      font-size: 10px;
-      font-weight: 900;
-      color: #555;
-      width: 14px;
+      font-size: 20px;
+      width: 28px;
+      text-align: center;
       flex-shrink: 0;
     }
 
-    .sidebar-rank-num.gold   { color: #d4af37; }
+    .sidebar-rank-num.gold   { color: #d4af37; text-shadow: 0 0 8px rgba(212,175,55,0.6); }
     .sidebar-rank-num.silver { color: #aaa; }
     .sidebar-rank-num.bronze { color: #cd7f32; }
 
     .sidebar-name {
-      font-size: 13px;
+      font-size: 16px;
       font-weight: 900;
       color: white;
       flex: 1;
@@ -588,27 +733,19 @@
       font-weight: 700;
       color: #d4af37;
       flex-shrink: 0;
+      text-align: right;
+      line-height: 1.2;
     }
 
-    .sidebar-passport-dots {
-      display: flex;
-      gap: 3px;
-      margin-top: 3px;
+    .sidebar-total-sub {
+      display: block;
+      font-size: 11px;
+      color: #555;
+      font-weight: 400;
     }
 
-    .sidebar-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #1a2a40;
-      border: 1px solid #2b3a55;
-    }
-
-    .sidebar-dot.stamped {
-      background: #4caf50;
-      border-color: #4caf50;
-      box-shadow: 0 0 4px rgba(76,175,80,0.6);
-    }
+    .sidebar-passport-dots { display: none; }
+    .sidebar-dot { display: none; }
 
     /* ═══════════════════════════════════════════
        LEADERBOARD AUTO (carte centree)
@@ -798,9 +935,9 @@
     ═══════════════════════════════════════════ */
     .quest-card {
       position: absolute;
-      top: 157px;
-      left: 28px;
-      width: 420px;
+      top: 158px;
+      left: 0;
+      right: 0;
       background: linear-gradient(160deg, #0a1220f2, #0d1b2af5);
       border: 2px solid rgba(212,175,55,0.7);
       border-radius: 20px;
@@ -1019,12 +1156,17 @@
 
   <!-- Bannière fixe -->
   <div class="banner">
-    <div class="banner-logo">QUEST<span>CORNER</span></div>
-    <div class="banner-right">
-      <div class="banner-tag">
-        <span class="banner-dot"></span>Les QuéQuêtes d'Asie
-      </div>
-      <div class="banner-sub">🛂 Complète ton Passeport · 🏆 Monte en Rang · 🎰 Gagne des Gives</div>
+    <div class="banner-top">
+      <div class="banner-logo"><span class="banner-quest">QUEST</span><span>CORNER</span></div>
+      <div class="banner-ig" id="banner-ig">@quest.corner</div>
+    </div>
+    <div class="banner-title" id="banner-live-title">
+      <span class="banner-dot"></span>Pokémon Japonais &amp; Coréen · Live du Samedi
+    </div>
+    <div class="banner-ticker-wrap">
+      <span class="banner-ticker" id="banner-ticker">
+        🏆 Top acheteur remporte un give mystère · 🎁 Palier 30€ = anti-clim · ⚔️ Palier 60€ = booster bonus · 👑 Palier 100€ = display surprise · 🔥 Classement en temps réel !
+      </span>
     </div>
   </div>
 
@@ -1091,6 +1233,41 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
+
+// ════════════════════════════════════════════
+//  INSTAGRAM HANDLES — un par un, toutes les 5s
+// ════════════════════════════════════════════
+
+const IG_HANDLES = ["@quest.corner", "@max_sens_"];
+let igIndex = 0;
+
+function rotateIgHandle() {
+  const el = document.getElementById("banner-ig");
+  if (!el) return;
+
+  // Fade out
+  el.style.opacity = "0";
+  el.style.transform = "translateY(-8px)";
+  el.style.transition = "opacity 0.35s ease, transform 0.35s ease";
+
+  setTimeout(() => {
+    igIndex = (igIndex + 1) % IG_HANDLES.length;
+    el.innerHTML = `<span class="ig-handle">${IG_HANDLES[igIndex]}</span>`;
+    el.style.transform = "translateY(8px)";
+    el.style.transition = "none";
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        el.style.opacity = "1";
+        el.style.transform = "translateY(0)";
+        el.style.transition = "opacity 0.35s ease, transform 0.35s ease";
+      });
+    });
+  }, 380);
+}
+
+// Toutes les 5 secondes
+setInterval(rotateIgHandle, 5000);
 
 // ════════════════════════════════════════════
 //  CONFIG
@@ -1500,6 +1677,20 @@ function animWheelSpin(data, onDone) {
 
 const socket = io();
 
+socket.on("setLiveTitle", (data) => {
+  const el = document.getElementById("banner-live-title");
+  if (el && data.title) {
+    el.innerHTML = `<span class="banner-dot"></span>${data.title}`;
+  }
+});
+
+socket.on("setLiveTicker", (data) => {
+  const el = document.getElementById("banner-ticker");
+  if (el && data.text) {
+    el.textContent = data.text;
+  }
+});
+
 socket.on("setVolume", (data) => {
   masterVolume = data.volume;
 });
@@ -1675,27 +1866,32 @@ function renderSidebar() {
 
   sidebar.classList.add("visible");
 
+  const medals     = ["🥇", "🥈", "🥉"];
   const numClasses = ["gold", "silver", "bronze"];
-  const numLabels  = ["1", "2", "3"];
+
+  // Paliers configurables (récupérés depuis le serveur ou défaut)
+  const PALIERS = [20, 50, 100, 200]; // ex: paliers gives
+
+  function getNextPalier(total) {
+    for (const p of PALIERS) { if (total < p) return p; }
+    return null;
+  }
 
   list.innerHTML = sorted.map((p, i) => {
-    const pass = p.passport || { jp: false, cn: false, id: false, kr: false };
-    const dots = ["jp","cn","kr","id"].map(k =>
-      `<div class="sidebar-dot ${pass[k] ? 'stamped' : ''}"></div>`
-    ).join("");
-
-    const totalDisplay = sidebarShowAmounts
-      ? `${p.total || 0}€`
-      : `xxx€`;
+    const total    = p.total || 0;
+    const next     = getNextPalier(total);
+    const totalDisplay = sidebarShowAmounts ? `${total}€` : `···€`;
+    const palierDisplay = next
+      ? `<span class="sidebar-total-sub">/${next}€</span>`
+      : `<span style="font-size:14px;color:#d4af37;">MAX</span>`;
 
     return `
       <div class="sidebar-player rank-${i+1}">
         <div class="sidebar-player-header">
-          <span class="sidebar-rank-num ${numClasses[i]}">${numLabels[i]}</span>
+          <span class="sidebar-rank-num ${numClasses[i]}">${medals[i]}</span>
           <span class="sidebar-name">${p.user}</span>
-          <span class="sidebar-total">${totalDisplay}</span>
+          <span class="sidebar-total">${totalDisplay}${palierDisplay}</span>
         </div>
-        <div class="sidebar-passport-dots">${dots}</div>
       </div>
     `;
   }).join("");

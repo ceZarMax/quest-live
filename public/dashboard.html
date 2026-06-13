@@ -24,10 +24,41 @@
 <div id="tab-live" class="tab-content">
   <div class="dashboard">
     <div class="sidebar">
+
+      <!-- Titre du live -->
+      <div class="card" style="margin-bottom:10px">
+        <h2>📺 Titre du Live</h2>
+        <input id="live-title-input" placeholder="Ex : Pokémon JP &amp; KR · Live du Samedi" style="width:100%;margin-bottom:8px">
+        <button onclick="setLiveTitle()" class="btn-timer-start" style="width:100%;margin-bottom:12px">Mettre à jour le titre</button>
+
+        <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">🎞️ Texte défilant</label>
+        <textarea id="live-ticker-input" rows="3" placeholder="Ex : 🏆 Top acheteur = give · 🎁 Palier 30€ = anti-clim..." style="width:100%;resize:vertical;margin-bottom:8px;background:#0d1b2a;color:white;border:1px solid #1e2e45;border-radius:6px;padding:8px;font-size:13px"></textarea>
+        <button onclick="setLiveTicker()" class="btn-timer-start" style="width:100%;background:linear-gradient(135deg,#1a2a40,#1e3050)">Mettre à jour le ticker</button>
+      </div>
+
       <div class="card">
         <h2>Ajouter un achat</h2>
-        <input id="user" placeholder="Pseudo" autocomplete="off" list="players-list">
-        <datalist id="players-list"></datalist>
+        <div style="position:relative">
+          <input id="user" placeholder="Pseudo" autocomplete="off"
+                 oninput="if(document.getElementById('user-dropdown').style.display==='block') filterDropdown(this.value)"
+                 onblur="setTimeout(hideDropdown, 250)"
+                 style="width:100%">
+          <div id="user-dropdown" style="
+            display:none;
+            position:absolute;
+            top:100%; left:0; right:0;
+            background:#0d1b2a;
+            border:1px solid #1e2e45;
+            border-top:none;
+            border-radius:0 0 8px 8px;
+            max-height:160px;
+            overflow-y:auto;
+            z-index:999;
+          "></div>
+        </div>
+        <div style="font-size:11px;color:#333;margin-top:3px;cursor:pointer" onclick="showDropdown();document.getElementById('user').focus()">
+          ▼ voir tous les joueurs
+        </div>
         <input id="amount" type="number" placeholder="Montant (€)" min="1">
         <select id="lang">
           <option value="jp">Japonais</option>
@@ -86,6 +117,17 @@
       </div>
       <div class="card timer-card">
         <h2>🛂 Paliers Passeport</h2>
+
+        <!-- Toggle passeport actif -->
+        <div class="timer-duration-row" style="margin-bottom:10px">
+          <label style="flex:1;font-size:13px;font-weight:700">Système Passeport</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-passport" checked onchange="togglePassport(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+          <span id="passport-active-label" style="font-size:11px;color:#4caf50;margin-left:8px;width:32px">ON</span>
+        </div>
+
         <p class="wheel-hint" style="margin-bottom:10px">Montant minimum par langue pour valider un tampon.</p>
         <div class="timer-duration-row" style="margin-bottom:10px">
           <label style="flex:1;font-size:13px">Palier par langue</label>
@@ -104,6 +146,32 @@
         <div style="margin-top:10px;font-size:11px;color:#333;line-height:1.5">
           ⚠️ Ne s'applique qu'aux nouveaux achats. Les tampons déjà validés restent acquis.
         </div>
+      </div>
+
+      <!-- Roue manuelle -->
+      <div class="card timer-card" style="margin-top:10px">
+        <h2>🎰 Roue Manuelle</h2>
+        <p class="wheel-hint" style="margin-bottom:10px">Déclenche une roue pour n'importe quel joueur, visible sur l'overlay.</p>
+        <div style="margin-bottom:8px">
+          <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Joueur</label>
+          <select id="manual-wheel-player" style="width:100%;padding:8px;background:#0d1b2a;border:1px solid #2b3a55;color:white;border-radius:6px;font-size:13px">
+            <option value="">— Sélectionner un joueur —</option>
+          </select>
+        </div>
+        <div style="margin-bottom:10px">
+          <label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Type de roue</label>
+          <select id="manual-wheel-type" style="width:100%;padding:8px;background:#0d1b2a;border:1px solid #2b3a55;color:white;border-radius:6px;font-size:13px">
+            <option value="passport">🏆 Passeport</option>
+            <option value="baroudeur">🗺️ Baroudeur</option>
+            <option value="gardien">🛡️ Gardien</option>
+            <option value="champion">⚔️ Champion</option>
+            <option value="seigneur">👑 Seigneur</option>
+            <option value="roi">🏆 Roi</option>
+          </select>
+        </div>
+        <button onclick="launchManualWheel()" class="btn-timer-start" style="width:100%;font-size:14px;padding:10px">
+          🎰 Lancer la roue sur l'overlay
+        </button>
       </div>
       <div class="card timer-card">
         <h2>⏱ Minuteur Langue</h2>
@@ -716,21 +784,23 @@ function selectRankEdit(rankKey, btn) {
 socket.on("init", (serverPlayers) => {
   Object.assign(players, serverPlayers);
   renderPlayers();
-  updateDatalist();
+  renderPlayersList();
   renderRankThresholdsList();
+  updateManualWheelSelect();
 });
 
 socket.on("purchase", (data) => {
   players[data.user] = data;
-  lastPurchaseUser = data.user; // mémorise le dernier acheteur
+  lastPurchaseUser = data.user;
+  renderPlayersList();
   // Si rankUp, mémoriser le rang atteint pour afficher le bouton roue (même si passeport complété en même temps)
   if (data.rankUp && data.rank) {
     const rankKey = RANK_THRESHOLD_MAP[data.rank.threshold];
     if (rankKey) pendingRankWheels[data.user] = rankKey;
   }
   renderPlayers();
-  updateDatalist();
   if (currentWheelTab === "topbuyers") renderTopBuyersLive();
+  updateManualWheelSelect();
   updateQuestOnPurchase(data);
   showToast(data);
   if (data.passportCompleted) {
@@ -761,17 +831,13 @@ document.getElementById("send").onclick = () => {
   if (!user || !amount || Number(amount) <= 0) return;
   socket.emit("purchase", { user, amount, lang });
   document.getElementById("amount").value = "";
-  document.getElementById("user").focus();
+  document.getElementById("user").value = "";
+  hideDropdown();
 };
 
 document.getElementById("amount").addEventListener("keydown", (e) => {
   if (e.key === "Enter") document.getElementById("send").click();
 });
-
-function updateDatalist() {
-  const list = document.getElementById("players-list");
-  list.innerHTML = Object.keys(players).map(p => `<option value="${p}">`).join("");
-}
 
 // ════════════════════════════════════════════
 //  JOUEURS
@@ -850,6 +916,82 @@ function renderPlayers() {
 
       container.appendChild(card);
     });
+}
+
+function renderPlayersList() {
+  // Met à jour les datalists legacy si encore présents
+  const lists = document.querySelectorAll('[id="players-list"]');
+  const sorted = Object.keys(players).sort();
+  lists.forEach(dl => {
+    dl.innerHTML = sorted.map(name => `<option value="${name}">`).join("");
+  });
+  // Rebuild le dropdown custom
+  buildDropdown();
+}
+
+function buildDropdown() {
+  const dd = document.getElementById("user-dropdown");
+  if (!dd) return;
+  const sorted = Object.keys(players).sort();
+  dd.innerHTML = sorted.map(name => `
+    <div class="dd-item" onmousedown="selectPlayer('${name.replace(/'/g,"\\'")}')">
+      ${name}
+    </div>
+  `).join("") || `<div style="padding:8px 12px;color:#555;font-size:13px">Aucun joueur</div>`;
+}
+
+function toggleDropdown() {
+  const dd = document.getElementById("user-dropdown");
+  if (!dd) return;
+  if (dd.style.display === "none" || dd.style.display === "") {
+    buildDropdown();
+    dd.style.display = "block";
+    document.getElementById("user").focus();
+  } else {
+    dd.style.display = "none";
+  }
+}
+
+function showDropdown() {
+  buildDropdown();
+  const dd = document.getElementById("user-dropdown");
+  if (dd) dd.style.display = "block";
+}
+
+function hideDropdown() {
+  const dd = document.getElementById("user-dropdown");
+  if (dd) dd.style.display = "none";
+}
+
+function filterDropdown(val) {
+  const dd = document.getElementById("user-dropdown");
+  if (!dd) return;
+  const sorted = Object.keys(players).sort();
+
+  // Aucun joueur → on ferme et on ne fait rien
+  if (sorted.length === 0) {
+    dd.style.display = "none";
+    return;
+  }
+
+  const lower = val.toLowerCase();
+  const matching = sorted.filter(n => n.toLowerCase().includes(lower));
+  const rest     = sorted.filter(n => !n.toLowerCase().includes(lower));
+  const all = [...matching, ...rest];
+  dd.innerHTML = all.map(name => `
+    <div class="dd-item" onmousedown="selectPlayer('${name.replace(/'/g,"\\'")}')">
+      ${val && name.toLowerCase().includes(lower)
+        ? name.replace(new RegExp(val, 'gi'), m => `<span style="color:#d4af37">${m}</span>`)
+        : name}
+    </div>
+  `).join("") || `<div style="padding:8px 12px;color:#555;font-size:13px">Aucun joueur</div>`;
+  dd.style.display = "block";
+}
+
+function selectPlayer(name) {
+  document.getElementById("user").value = name;
+  hideDropdown();
+  document.getElementById("amount").focus();
 }
 
 function resetPassport(user) {
@@ -1950,6 +2092,96 @@ socket.on("ebaySyncStatus", (data) => {
     label.style.color = data.active ? "#4caf50" : "#333";
   }
 });
+
+function togglePassport(active) {
+  socket.emit("setPassportActive", { active });
+  const label = document.getElementById("passport-active-label");
+  if (label) {
+    label.textContent = active ? "ON" : "OFF";
+    label.style.color = active ? "#4caf50" : "#e74c3c";
+  }
+}
+
+function launchManualWheel() {
+  const user = document.getElementById("manual-wheel-player").value;
+  const type = document.getElementById("manual-wheel-type").value;
+  if (!user) { alert("Sélectionne un joueur."); return; }
+
+  const rewardList = type === "passport" ? rewards : (rankRewards[type] || rewards);
+  const normalized = getNormalizedRewards(rewardList);
+
+  // Tirage pondéré
+  const rand = Math.random();
+  let cumul = 0, winIndex = 0;
+  for (let i = 0; i < normalized.length; i++) {
+    cumul += normalized[i].norm;
+    if (rand <= cumul) { winIndex = i; break; }
+  }
+
+  const duration   = 6000;
+  const angleStart = normalized.slice(0, winIndex).reduce((s, r) => s + r.norm * Math.PI * 2, 0);
+  const sliceAngle = normalized[winIndex].norm * Math.PI * 2;
+  const winCenter  = angleStart + sliceAngle / 2;
+  const jitter     = (Math.random() - 0.5) * sliceAngle * 0.6;
+  const extraSpins = (5 + Math.floor(Math.random() * 4)) * Math.PI * 2;
+  const targetAngle = -Math.PI / 2 - (winCenter + jitter) + extraSpins;
+
+  playSound("wheel");
+  socket.emit("spinWheel", {
+    user,
+    rewards: normalized,
+    winIndex, targetAngle, duration,
+    emitAt: Date.now(),
+    wheelType: type === "passport" ? "passport" : "rank",
+    rankLabel: type !== "passport" ? (RANK_LABELS[type] || type) : "",
+  });
+
+  const btn = document.querySelector('[onclick="launchManualWheel()"]');
+  btn.textContent = "⏳ Roue lancée !";
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.textContent = "🎰 Lancer la roue sur l'overlay";
+    btn.disabled = false;
+  }, duration + 1000);
+}
+
+// Met à jour le select joueurs de la roue manuelle
+function updateManualWheelSelect() {
+  const sel = document.getElementById("manual-wheel-player");
+  if (!sel) return;
+  const current = sel.value;
+  const sorted  = Object.keys(players).sort();
+  sel.innerHTML = '<option value="">— Sélectionner un joueur —</option>' +
+    sorted.map(n => `<option value="${n}" ${n === current ? 'selected' : ''}>${n}</option>`).join("");
+}
+
+// ════════════════════════════════════════════
+//  TITRE LIVE
+// ════════════════════════════════════════════
+
+function setLiveTitle() {
+  const title = document.getElementById("live-title-input").value.trim();
+  if (!title) return;
+  socket.emit("setLiveTitle", { title });
+  document.getElementById("live-title-input").style.borderColor = "#4caf50";
+  setTimeout(() => {
+    document.getElementById("live-title-input").style.borderColor = "";
+  }, 1500);
+}
+
+function setLiveTicker() {
+  const text = document.getElementById("live-ticker-input").value.trim();
+  if (!text) return;
+  socket.emit("setLiveTicker", { text });
+  const btn = document.querySelector('[onclick="setLiveTicker()"]');
+  const prev = btn.textContent;
+  btn.textContent = "✅ Mis à jour !";
+  btn.style.borderColor = "#4caf50";
+  setTimeout(() => {
+    btn.textContent = prev;
+    btn.style.borderColor = "";
+  }, 1500);
+}
 
 // ════════════════════════════════════════════
 //  SOUNDBOARD
